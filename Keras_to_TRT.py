@@ -28,7 +28,7 @@ def load():
     fcn17 = Conv2DTranspose(filters=2, kernel_size=16, strides=(8, 8), padding='same', name="fcn17",
                             activation="softmax")(fcn16_skip_connected)
     model = Model(inputs=mbl.input, outputs=fcn17)
-    model.load_weights('model_1M.h5')
+    model.load_weights('model-mobilenet-1M-iter12-pretrain-bdd.h5')
 
 
 def load_keras_model(file_name):
@@ -162,15 +162,15 @@ def inference_2(trt_graph):
 
 def pipe_line(keras_model_path):
     # load_keras_model(keras_model_path)
-    load()
-    keras_to_TF()
+    # load()
+    # keras_to_TF()
     # TF_to_TRT()
-    # test()
+    test()
 
-# pipe_line("model-mobilenet-iter2-pretrain-data-bdd")
+#pipe_line("model-mobilenet-iter2-pretrain-data-bdd")
 
 
 sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("TensorRT_FP32.pb")
+trt = read_pb_graph("TensorRT_1M_FP16.pb")
 inference_2(trt)
 

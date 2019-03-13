@@ -65,11 +65,11 @@ class SegmentToSteer():
                     turn_right = True
                 break
             i_r -= (border + 1)
-        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left):
+        if turn_left and turn_right and flag == 1:
             while img[i][i_r] == 255 and i >= 0:
                 i -= 1
             return i+1, i_r
-        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right):
+        elif turn_left and turn_right and flag == -1:
             while img[i][i_l] == 255 and i >= 0:
                 i -= 1
             return i+1, i_l

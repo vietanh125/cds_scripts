@@ -62,7 +62,7 @@ class Processor:
 					cv2.waitKey(1)
 					# if time.time() - start <= 10:
 					# 	speed = 100
-					self.publish_data(speed, -2/3*steer)
+					self.publish_data(speed, -steer)
 
 			except CvBridgeError as e:
 				print(e)
@@ -71,7 +71,7 @@ class Processor:
 			self.s2s.error_proportional_ = 0.0
 			self.s2s.error_integral_     = 0.0
 			self.s2s.error_derivative_   = 0.0
-			self.publish_data(0, -10)
+			self.publish_data(0, 0)
 
 	def convert_data_to_image(self, data):
 		arr = np.fromstring(data, np.uint8)

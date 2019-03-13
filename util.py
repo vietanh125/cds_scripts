@@ -174,23 +174,15 @@ class Utilities:
         time.sleep(1)
 
     # utility functions
-    def load_model():
-        mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))
-        x = mbl.output
-        model_tmp = Model(inputs=mbl.input, outputs=x)
-        layer5, layer8, layer13 = model_tmp.get_layer('conv_pw_5_relu').output, model_tmp.get_layer(
-            'conv_pw_8_relu').output, model_tmp.get_layer('conv_pw_13_relu').output
-        fcn14 = Conv2D(filters=2, kernel_size=1, name='fcn14')(layer8)
-        fcn16 = Conv2DTranspose(filters=layer5.get_shape().as_list()[-1], kernel_size=4, strides=2, padding='same',
-                                name="fcn16_conv2d")(fcn14)
-        # Add skip connection
-        fcn16_skip_connected = Add(name="fcn16_plus_vgg_layer5")([fcn16, layer5])
-        # Upsample again
-        fcn17 = Conv2DTranspose(filters=2, kernel_size=16, strides=(8, 8), padding='same', name="fcn17",
-                                activation="softmax")(fcn16_skip_connected)
-        model = Model(inputs=mbl.input, outputs=fcn17)
-        model.load_weights('model_1M.h5')
-        return model
+    def load_model(self):
+        from tensorflow.keras.models import model_from_json
+        json_file = open(self.path+'model.json', 'r')
+        loaded_model_json = json_file.read()
+        loaded_model = model_from_json(loaded_model_json)
+        loaded_model.load_weights(self.path+"model.h5")
+        loaded_model._make_predict_function()
+        print ("model 1M loaded")
+        return loaded_model
 
     def load_model_segment(self):
         mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))

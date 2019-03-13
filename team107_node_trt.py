@@ -70,7 +70,7 @@ class Processor:
         # 	start = time.time()
         # 	check = False
         delta = time.time() - end
-        if delta >= 0.03 and is_running == True:
+        if delta >= 0.001 and is_running == True:
             try:
                 t1 = time.time()
                 self.image = self.convert_data_to_image(data.data)
@@ -78,9 +78,10 @@ class Processor:
                 image = self.image / 255.
                 image = np.expand_dims(image, 0)
                 res = sess.run(output, feed_dict={input: image})
+		
                 res = np.argmax(res, axis=3)[0]
-                cv2.imshow('black and white', res * 255.)
-                cv2.waitKey(1)
+                # cv2.imshow('black and white', res * 255.)
+                # cv2.waitKey(1)
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., flag, s)
                 cv2.imshow('road', res)
                 cv2.waitKey(1)
