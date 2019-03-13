@@ -39,10 +39,11 @@ def read_pb_graph(model):
 graph = tf.Graph()
 graph.as_default()
 sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt_graph = read_pb_graph('/TensorRT_'+ PRECISION + '.pb')
+trt_graph = read_pb_graph('TensorRT_'+ PRECISION + '.pb')
 tf.import_graph_def(trt_graph, name='')
 input = sess.graph.get_tensor_by_name('input_1:0')
 output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
+print 'model loaded'
 
 class Processor:
     def __init__(self):
