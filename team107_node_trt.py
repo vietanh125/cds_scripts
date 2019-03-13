@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import roslib
+import tensorflow.contrib.tensorrt as trt
 
 roslib.load_manifest('team107')
 import sys
@@ -38,7 +39,7 @@ def read_pb_graph(model):
 graph = tf.Graph()
 graph.as_default()
 sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt_graph = read_pb_graph('./tensorRT/TensorRT_'+ PRECISION + '.pb')
+trt_graph = read_pb_graph('/TensorRT_'+ PRECISION + '.pb')
 tf.import_graph_def(trt_graph, name='')
 input = sess.graph.get_tensor_by_name('input_1:0')
 output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
@@ -110,7 +111,7 @@ class Processor:
 
 
 def main(args):
-    p = processor()
+    p = Processor()
     rospy.init_node('team107')
     try:
         rospy.spin()

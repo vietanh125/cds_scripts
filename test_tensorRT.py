@@ -2,8 +2,8 @@ import tensorflow as tf
 from Keras_to_TRT import read_pb_graph, inference
 import cv2
 sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("./tensorRT/TensorRT_FP32.pb")
-cap = cv2.VideoCapture('new_map.mp4')
+trt = read_pb_graph("./TensorRT_FP32.pb")
+cap = cv2.VideoCapture('output.avi')
 tf.import_graph_def(trt, name='')
 ret, frame = cap.read()
 input = sess.graph.get_tensor_by_name('input_1:0')

@@ -131,7 +131,7 @@ def inference_2(trt_graph):
         tf.import_graph_def(trt_graph, name='')
         input = sess.graph.get_tensor_by_name('input_1:0')
         output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
-        cap = cv2.VideoCapture('/home/vietanh/data/i4.avi')
+        cap = cv2.VideoCapture('output.avi')
         total_time = 0
         ret, frame = cap.read()
         frame = cv2.resize(frame[:500, :], (320, 160))
@@ -171,6 +171,6 @@ def pipe_line(keras_model_path):
 
 
 sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("./tensorRT/TensorRT_1M_FP16.pb")
+trt = read_pb_graph("TensorRT_FP32.pb")
 inference_2(trt)
 
