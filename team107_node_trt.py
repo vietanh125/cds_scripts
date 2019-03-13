@@ -44,10 +44,9 @@ input = sess.graph.get_tensor_by_name('input_1:0')
 output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
 
 class Processor:
-    def __init__(self, model):
+    def __init__(self):
         self.image = None
-        self.model = model
-        self.graph = tf.get_default_graph()
+        
         self.ss_sub = rospy.Subscriber('ss_status', Bool, self.run_callback, queue_size=1)
         self.image_sub = rospy.Subscriber('/camera/rgb/image_raw/compressed', CompressedImage, self.callback,
                                           queue_size=1)
