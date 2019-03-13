@@ -6,6 +6,11 @@ import numpy as np
 import os
 import time
 import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import *
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras import applications
 from rospkg import RosPack
 from team107_node import Processor
 from sensor_msgs.msg import CompressedImage
@@ -33,7 +38,7 @@ class Utilities:
         self.bt3_status = False
         self.bt4_status = False
 	self.ss_status = False
-        self.model = self.load_model_segment()
+        self.model = self.load_model()
         #ros subscribers and publishers
         #hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
@@ -169,6 +174,23 @@ class Utilities:
         time.sleep(1)
 
     #utility functions
+    def load_model(self):
+		mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))
+		x = mbl.output
+		model_tmp = Model(inputs=mbl.input, outputs=x)
+		layer5, layer8, layer13 = model_tmp.get_layer('conv_pw_5_relu').output, model_tmp.get_layer(
+			'conv_pw_8_relu').output, model_tmp.get_layer('conv_pw_13_relu').output
+		fcn14 = Conv2D(filters=2, kernel_size=1, name='fcn14')(layer8)
+		fcn16 = Conv2DTranspose(filters=layer5.get_shape().as_list()[-1], kernel_size=4, strides=2, padding='same',
+								name="fcn16_conv2d")(fcn14)
+		# Add skip connection
+		fcn16_skip_connected = Add(name="fcn16_plus_vgg_layer5")([fcn16, layer5])
+		# Upsample again
+		fcn17 = Conv2DTranspose(filters=2, kernel_size=16,
+								strides=(8, 8), padding='same', name="fcn17", activation="softmax")(fcn16_skip_connected)
+		model = Model(inputs=mbl.input, outputs=fcn17)
+		model.load_weights(self.path + "model-mobilenet-1M-iter12-pretrain-bdd.h5")
+		return model
     def load_model_segment(self):
 		mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160,320,3))
 		x = mbl.output

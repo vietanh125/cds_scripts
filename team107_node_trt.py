@@ -84,8 +84,7 @@ class Processor:
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., flag, s)
                 cv2.imshow('road', res)
                 cv2.waitKey(1)
-                self.publish_data(speed, steer)
-                print(1 / (time.time() - t1))
+                self.publish_data(speed, -steer)
 
             except CvBridgeError as e:
                 print(e)
