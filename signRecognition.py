@@ -8,6 +8,7 @@ import rospkg
 rospack = rospkg.RosPack()
 path = rospack.get_path('team107') + '/scripts/'
 model = load_model(path + 'updated.h5')
+model._make_predict_function()
 
 def over_lap_area(r1, r2):
     x1_left, y1_top, w1, h1 = r1
@@ -69,7 +70,7 @@ def detect1(frame):
         (x, y, w, h) = cv2.boundingRect(cnt)
         ratio = w/float(h)
         #check CIRCLE, MIN WIDTH, MIN HEIGHT
-        if ratio > 0.5 and ratio < 1.5 and w > 5 and w < 100:
+        if ratio > 0.7 and ratio < 1.3 and w > 5 and w < 150:
             arr.append((x, y, x+w, y+h))
 
     arr = optimize(arr)
@@ -95,15 +96,23 @@ def detect1(frame):
         arg_min = np.argmin(predict_result)
         s_min = s[arg_min]
         if max_predict < 0.85 and min_predict > 0.15:
-            return 0, 1
+			cv2.imshow('image', frame)
+			cv2.waitKey(1)
+			return 0, 1
         elif max_predict > 1 - min_predict:
             cv2.putText(frame, "Turn Left", (arr[arg_max][0], arr[arg_max][1]), cv2.FONT_HERSHEY_DUPLEX, 0.4, (255, 0, 0), 2, 0)
             cv2.rectangle(frame, (arr[arg_max][0], arr[arg_max][1]), (arr[arg_max][2], arr[arg_max][3]), (255, 0, 0), 1, 1)
+            cv2.imshow('image', frame)
+            cv2.waitKey(1)
             return -1, s_max
         elif max_predict < 1 - min_predict:
             cv2.putText(frame, "Turn Right", (arr[arg_min][0], arr[arg_min][1]), cv2.FONT_HERSHEY_DUPLEX, 0.4, (255, 0, 0), 2, 0)
             cv2.rectangle(frame, (arr[arg_min][0], arr[arg_min][1]), (arr[arg_min][2], arr[arg_min][3]), (255, 0, 0), 1, 1)
+            cv2.imshow('image', frame)
+            cv2.waitKey(1)
             return 1, s_min
+	cv2.imshow('image', frame)
+	cv2.waitKey(1)
     return 0, 0
     # cv2.imshow('image', result)
     # cv2.waitKey(1)

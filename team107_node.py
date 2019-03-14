@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json, load_model
-#from signRecognition import detect1
+from signRecognition import detect1
 import time
 import rospkg
 from steer import SegmentToSteer
@@ -53,13 +53,13 @@ class Processor:
 			try:
 				with self.graph.as_default():
 					self.image = self.convert_data_to_image(data.data)
-					#flag, s = detect1(self.image)
+					flag, s = detect1(self.image)
 					res = self.get_segment_image(self.image)
 					#cv2.imshow('black and white', res*255.)
 					#cv2.waitKey(1)
-					speed, steer, res = self.s2s.get_steer(self.image, res*255., 0, 0)
-					cv2.imshow('road', res)
-					cv2.waitKey(1)
+					speed, steer, res = self.s2s.get_steer(self.image, res*255., flag, s)
+					#cv2.imshow('road', res)
+					#cv2.waitKey(1)
 					# if time.time() - start <= 10:
 					# 	speed = 100
 					self.publish_data(speed, -steer)

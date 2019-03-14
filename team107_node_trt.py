@@ -38,7 +38,7 @@ def read_pb_graph(model):
 
 graph = tf.Graph()
 graph.as_default()
-sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+sess = tf.Session()
 trt_graph = read_pb_graph('TensorRT_'+ PRECISION + '.pb')
 tf.import_graph_def(trt_graph, name='')
 input = sess.graph.get_tensor_by_name('input_1:0')
@@ -70,11 +70,11 @@ class Processor:
         # 	start = time.time()
         # 	check = False
         delta = time.time() - end
-        if delta >= 0.001 and is_running == True:
+        if delta >= 0.03 and is_running == True:
             try:
                 t1 = time.time()
                 self.image = self.convert_data_to_image(data.data)
-                flag, s = -1, 40
+                flag, s = 0, 0
                 image = self.image / 255.
                 image = np.expand_dims(image, 0)
                 res = sess.run(output, feed_dict={input: image})

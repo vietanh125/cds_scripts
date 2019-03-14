@@ -20,8 +20,8 @@ class SegmentToSteer():
         self.size = size
         self.memory = deque(iterable=np.zeros(size, dtype=np.uint8), maxlen=size)
         self.roi = 1 - roi
-        self.speed_max = 15
-        self.speed_min = 10
+        self.speed_max = 19
+        self.speed_min = 12
         # self.steer_pid = PID(Kp=self.p[0], Ki=self.p[1], Kd=self.p[2])
         # self.steer_pid.setWindup(50)
         self.error_proportional_ = 0.0

@@ -170,7 +170,7 @@ def pipe_line(keras_model_path):
 #pipe_line("model-mobilenet-iter2-pretrain-data-bdd")
 
 
-sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("TensorRT_1M_FP16.pb")
+#sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+trt = read_pb_graph("TensorRT_1M_FP32.pb")
 inference_2(trt)
 
