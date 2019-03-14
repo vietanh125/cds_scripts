@@ -9,13 +9,14 @@ roslib.load_manifest('team107')
 import sys
 import rospy
 import cv2
+from signRecognition import detect1
 from std_msgs.msg import String, Float32, Bool
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json, load_model
-# from signRecognition import detect1
+from signRecognition import detect1
 import time
 import rospkg
 from steer import SegmentToSteer
@@ -74,7 +75,7 @@ class Processor:
             try:
                 t1 = time.time()
                 self.image = self.convert_data_to_image(data.data)
-                flag, s = 0, 0
+                flag, s = detect1(self.image)
                 image = self.image / 255.
                 image = np.expand_dims(image, 0)
                 res = sess.run(output, feed_dict={input: image})

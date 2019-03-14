@@ -20,7 +20,7 @@ class SegmentToSteer():
         self.size = size
         self.memory = deque(iterable=np.zeros(size, dtype=np.uint8), maxlen=size)
         self.roi = 1 - roi
-        self.speed_max = 19
+        self.speed_max = 15
         self.speed_min = 12
         # self.steer_pid = PID(Kp=self.p[0], Ki=self.p[1], Kd=self.p[2])
         # self.steer_pid.setWindup(50)
@@ -67,7 +67,7 @@ class SegmentToSteer():
             i_r -= (border + 1)
         if turn_left and turn_right and flag == 1:
             while img[i][i_r] == 255 and i >= 0:
-                i -= 1
+				i -= 1
             return i+1, i_r
         elif turn_left and turn_right and flag == -1:
             while img[i][i_l] == 255 and i >= 0:
@@ -75,32 +75,6 @@ class SegmentToSteer():
             return i+1, i_l
         else:
             return i, int((i_l + i_r) / 2)
-
-    def get_base_point(self, img):
-        IMG_H, IMG_W = img.shape
-        border = int((self.square - 1) / 2)
-        i = IMG_H - 1 - border
-        i_l = border
-        i_r = IMG_W - 1 - border
-        turn_left = False
-        turn_right = False
-        while i_l < IMG_W - border:
-            check = img[i - border: i + border + 1, i_l - border: i_l + border + 1]
-            white = np.sum(check) / 255
-            if white == self.square ** 2:
-                if i_l <= self.margin:
-                    turn_left = True
-                break
-            i_l += (border + 1)
-        while i_r > i_l:
-            check = img[i - border: i + border + 1, i_r - border: i_r + border + 1]
-            white = np.sum(check) / 255
-            if white == self.square ** 2:
-                if i_r >= IMG_W - self.margin:
-                    turn_right = True
-                break
-            i_r -= (border + 1)
-        return i, int((i_l + i_r) / 2)
 
     def get_flag(self):
         arr = np.asarray(self.memory, np.int8)
@@ -142,7 +116,7 @@ class SegmentToSteer():
         current_flag = 0
         roi = self.roi
 
-        if total_time > 0 and total_time < 3:
+        if total_time > 0 and total_time < 5:
             total_time += interval
             current_flag = pre_flag
         else:
