@@ -41,7 +41,7 @@ def read_pb_graph(model):
 graph = tf.Graph()
 graph.as_default()
 sess = tf.Session()
-trt_graph = read_pb_graph('TensorRT_'+ PRECISION + '.pb')
+trt_graph = read_pb_graph('TensorRT_1M_'+ PRECISION + '.pb')
 tf.import_graph_def(trt_graph, name='')
 input = sess.graph.get_tensor_by_name('input_1:0')
 output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
@@ -85,7 +85,7 @@ class Processor:
                 # cv2.imshow('black and white', res * 255.)
                 # cv2.waitKey(1)
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., flag, s)
-                cv2.imshow('road', res)
+                cv2.imshow('road', self.image)
                 cv2.waitKey(1)
                 self.publish_data(speed, -steer)
 

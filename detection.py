@@ -8,7 +8,7 @@ model = load_model(path + 'updated.h5')
 model._make_predict_function()
 model.predict(np.zeros((1, 24, 24, 1)))
 n = 5
-lowerBound = np.array([90, 80, 50])
+lowerBound = np.array([98, 109, 20])
 upperBound = np.array([110, 255, 255])
 
 def detect(img):
@@ -17,11 +17,11 @@ def detect(img):
     mask = cv2.inRange(imgHSV, lowerBound, upperBound)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernelOpen)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernelClose)
-    conts, dum2 = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    _, conts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     list_pred = []
     for i in range(0, len(conts)):
-        x, y, w, h = cv2.boundingRect(conts[i])
-        if w*h >= 1000 and (w/h > 0.7 and w/h < 1.3):
+        (x, y, w, h) = cv2.boundingRect(conts[i])
+        if w*h >= 100 and (w/h > 0.7 and w/h < 1.3):
             crop = img[max(0, y - 1):min(y + h + 1, img_h), max(0, x - 1): min(x + w + 1, img_w)]
             crop = cv2.resize(crop, (24, 24))
             crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)

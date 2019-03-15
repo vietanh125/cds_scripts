@@ -36,7 +36,7 @@ class Utilities:
         self.bt3_status = False
         self.bt4_status = False
         self.ss_status = False
-        self.model = self.load_model()
+        self.model = self.load_model_segment()
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)

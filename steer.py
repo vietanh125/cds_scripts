@@ -14,7 +14,7 @@ stored_time = 0.0
 
 
 class SegmentToSteer():
-    def __init__(self, square=3, margin=30, roi=1/3, size=10):
+    def __init__(self, square=3, margin=30, roi=1/3, size=5):
         self.square = square
         self.margin = margin
         self.size = size
