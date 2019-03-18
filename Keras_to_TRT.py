@@ -61,7 +61,7 @@ def TF_to_TRT():
         input_graph_def=frozen_graph,
         outputs=your_outputs,
         max_batch_size=1,
-        max_workspace_size_bytes=1>>25,
+        max_workspace_size_bytes=2700000000,
         precision_mode=PRECISION)
 
     with gfile.FastGFile("./tensorRT/TensorRT_1M_" + PRECISION + ".pb", 'wb') as f:
