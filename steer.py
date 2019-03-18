@@ -153,4 +153,4 @@ class SegmentToSteer():
         speed = (self.speed_min -self.speed_max) * steer**2/ 3600 + self.speed_max
             # speed = self.speed_max
         # label = self.write_vector(label, x, y, steer)
-        return speed, new_steer, label
+        return speed, steer, label
