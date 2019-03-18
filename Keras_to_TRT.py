@@ -12,7 +12,7 @@ from tensorflow.keras.initializers import glorot_uniform
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from tensorflow.keras import applications
-PRECISION = "FP16"
+PRECISION = "FP32"
 def load():
     mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))
     x = mbl.output
@@ -47,7 +47,7 @@ def keras_to_TF():
 
 
 def TF_to_TRT():
-    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
         saver = tf.train.import_meta_graph("./tensorRT/model.meta")
         saver.restore(sess, "./tensorRT/model")
         your_outputs = ["fcn17/truediv"]
@@ -161,16 +161,16 @@ def inference_2(trt_graph):
 
 
 def pipe_line(keras_model_path):
-    # load_keras_model(keras_model_path)
+    #load_keras_model(keras_model_path)
     # load()
-    # keras_to_TF()
-    # TF_to_TRT()
+    #keras_to_TF()
+    TF_to_TRT()
     test()
 
 #pipe_line("model-mobilenet-iter2-pretrain-data-bdd")
 
 
-#sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("TensorRT_1M_FP32.pb")
+sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+trt = read_pb_graph("./tensorRT/TensorRT_FP16.pb")
 inference_2(trt)
 

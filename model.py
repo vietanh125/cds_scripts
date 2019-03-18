@@ -6,7 +6,9 @@ import numpy as np
 class Model():
     def __init__(self, path):
         self.graph = tf.Graph()
-        self.sess = tf.Session(graph=self.graph)
+        sess = tf.Session(graph=self.graph)
+        sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+        self.sess = sess
         with self.graph.as_default():
             trt_graph = self.read_pb_graph(path)
             tf.import_graph_def(trt_graph, name='')

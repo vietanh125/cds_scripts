@@ -14,7 +14,7 @@ stored_time = 0.0
 
 
 class SegmentToSteer():
-    def __init__(self, square=3, margin=30, roi=1/3, size=5):
+    def __init__(self, square=3, margin=30, roi=1/3, size=7):
         self.square = square
         self.margin = margin
         self.size = size
@@ -136,21 +136,21 @@ class SegmentToSteer():
             y, x = self.get_point(label, current_flag)
 
         steer = np.arctan((x - IMG_W/2 + 1) / (IMG_H - float(y))) * 57.32
-        steer = np.sign(steer) * min(50, abs(steer))
+        steer = np.sign(steer) * min(60, abs(steer))
         #PID tuning
         #self.steer_pid.updateError(steer)
         #new_steer = -self.steer_pid.output()
-        new_steer = -self.pid(x - IMG_W/2 + 1 )
+        #new_steer = -self.pid(x - IMG_W/2 + 1 )
         # print steer, new_steer
         # print self.steer_pid.Kp, self.steer_pid.Ki, self.steer_pid.Kd
         # twiddle_count_threshold = 500
         # if self.steer_pid.update_count > twiddle_count_threshold:
         #     self.steer_pid.twiddle()
-        if current_flag != 0 or pre_flag != 0:
-            speed = self.speed_min
-        else:
+        #if current_flag != 0 or pre_flag != 0:
+            #speed = self.speed_min
+        #else:
             #speed = max(self.speed_min, self.speed_max*np.cos(abs(steer)*np.pi/180))
-            speed = self.speed_max
+        speed = (self.speed_min -self.speed_max) * steer**2/ 3600 + self.speed_max
             # speed = self.speed_max
         # label = self.write_vector(label, x, y, steer)
         return speed, new_steer, label

@@ -56,7 +56,7 @@ class Processor:
 				with self.graph.as_default():
 					self.image = self.convert_data_to_image(data.data)
 					flag, s = detect(self.image)
-					res = self.get_segment_image(self.image)
+					res = self.model.predict(self.image)
 					cv2.imshow('image', self.image)
 					cv2.imshow('black and white', res*255.)
 					cv2.waitKey(1)

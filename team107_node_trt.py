@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 import os
+import time
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import roslib
+t = time.time()
 import tensorflow.contrib.tensorrt as trt
-
+print ("1 ", time.time() - t)
+t = time.time()
 roslib.load_manifest('team107')
 import sys
 import rospy
 import cv2
-#from signRecognition import detect1
 from detection import detect
 from std_msgs.msg import String, Float32, Bool
 from sensor_msgs.msg import CompressedImage
@@ -17,21 +19,21 @@ from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json, load_model
-from signRecognition import detect1
-import time
-import rospkg
+from rospkg import RosPack
 from steer import SegmentToSteer
 
-rospack = rospkg.RosPack()
+rospack = RosPack()
 path = rospack.get_path('team107') + '/scripts/'
 end = time.time()
 start = time.time()
 check = True
 is_running = True
-
+print ("2 ", time.time() - t)
+t = time.time()
 from tensorflow.python.platform import gfile
 PRECISION = "FP32"
-
+print ("3 ", time.time() - t)
+t = time.time()
 def read_pb_graph(model):
     with gfile.FastGFile(path+model,'rb') as f:
         graph_def = tf.GraphDef()
@@ -41,12 +43,12 @@ def read_pb_graph(model):
 graph = tf.Graph()
 graph.as_default()
 sess = tf.Session()
-trt_graph = read_pb_graph('TensorRT_1M_'+ PRECISION + '.pb')
+trt_graph = read_pb_graph('TensorRT_'+ PRECISION + '.pb')
 tf.import_graph_def(trt_graph, name='')
 input = sess.graph.get_tensor_by_name('input_1:0')
 output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
 print 'model loaded'
-
+print ("4 ", time.time() - t)
 class Processor:
     def __init__(self):
         self.image = None

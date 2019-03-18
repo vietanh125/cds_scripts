@@ -16,6 +16,7 @@ from team107_node import Processor
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, Float32, Bool
 from rospy import ROSException
+from model import Model
 
 rospack = RosPack()
 
@@ -36,7 +37,7 @@ class Utilities:
         self.bt3_status = False
         self.bt4_status = False
         self.ss_status = False
-        self.model = self.load_model_segment()
+        self.model = Model(self.path + 'TensorRT_FP32.pb')
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
