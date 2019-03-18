@@ -131,8 +131,8 @@ class SegmentToSteer():
 
         y, x = self.get_point(label, current_flag)
 
-        while label[y][x] == 0 and roi < 0.8:
-            roi += 0.1
+        while label[y][x] == 0 and roi < 0.9:
+            roi += 0.05
             y, x = self.get_point(label, current_flag)
 
         steer = np.arctan((x - IMG_W/2 + 1) / (IMG_H - float(y))) * 57.32
@@ -140,7 +140,7 @@ class SegmentToSteer():
         #PID tuning
         #self.steer_pid.updateError(steer)
         #new_steer = -self.steer_pid.output()
-        #new_steer = -self.pid(x - IMG_W/2 + 1 )
+        new_steer = -self.pid(x - IMG_W/2 + 1 )
         # print steer, new_steer
         # print self.steer_pid.Kp, self.steer_pid.Ki, self.steer_pid.Kd
         # twiddle_count_threshold = 500

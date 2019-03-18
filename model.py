@@ -6,8 +6,7 @@ import numpy as np
 class Model():
     def __init__(self, path):
         self.graph = tf.Graph()
-        sess = tf.Session(graph=self.graph)
-        sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+        sess = tf.Session(graph=self.graph, config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
         self.sess = sess
         with self.graph.as_default():
             trt_graph = self.read_pb_graph(path)

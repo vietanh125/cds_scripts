@@ -141,13 +141,13 @@ class Utilities:
         elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
             self.change_min_speed(1)
         elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
-            self.change_roi(0.1)
+            self.change_roi(0.05)
         elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
             self.change_max_speed(-1)
         elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
             self.change_min_speed(-1)
         elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
-            self.change_roi(-0.1)
+            self.change_roi(-0.05)
 
     def change_max_speed(self, amount):
         self.engine.s2s.speed_max += amount
@@ -228,7 +228,7 @@ class Utilities:
 
 
 def main(args):
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     util = Utilities()
     try:
