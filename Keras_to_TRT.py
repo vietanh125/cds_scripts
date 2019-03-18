@@ -47,7 +47,7 @@ def keras_to_TF():
 
 
 def TF_to_TRT():
-    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0))) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
         saver = tf.train.import_meta_graph("./tensorRT/model.meta")
         saver.restore(sess, "./tensorRT/model")
         your_outputs = ["fcn17/truediv"]
@@ -85,7 +85,7 @@ def test(n_time_inference=50):
     input_img = np.zeros((1, 160, 320, 3))
     graph = tf.Graph()
     with graph.as_default():
-        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
+        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
             trt_graph = read_pb_graph('./tensorRT/TensorRT_1M_'+ PRECISION + '.pb')
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
@@ -127,7 +127,7 @@ def inference(sess, frame, input, output):
     return out_pred
 
 def inference_2(trt_graph):
-    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.0))) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
         tf.import_graph_def(trt_graph, name='')
         input = sess.graph.get_tensor_by_name('input_1:0')
         output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
