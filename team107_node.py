@@ -53,11 +53,11 @@ class Processor:
 		if delta >= 0.03 and is_running == True:
 			try:
 				self.image = self.convert_data_to_image(data.data)
-				flag, s = detect_3_channels(self.image)
+				flag, s = detect(self.image)
 				res = self.model.predict(self.image)
-				cv2.imshow('image', self.image)
+				#cv2.imshow('image', self.image)
 				#cv2.imshow('black and white', res*255.)
-				cv2.waitKey(1)
+				#cv2.waitKey(1)
 				speed, steer, res = self.s2s.get_steer(self.image, res*255., flag, s)
 				#cv2.imshow('road', res)
 				#cv2.waitKey(1)

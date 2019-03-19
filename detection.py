@@ -9,7 +9,7 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 path = rospack.get_path('team107') + '/scripts/'
-model = load_model(path + 'updated_1.h5')
+model = load_model(path + 'updated.h5')
 
 model._make_predict_function()
 model.predict(np.zeros((1, 24, 24, 1)))
@@ -58,7 +58,7 @@ def detect_3_channels(img):
     # mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernelOpen)
     cv2.imshow("mask", mask)
     cv2.waitKey(1)
-    conts, dum2 = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    _, conts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     list_pred = []
     for i in range(0, len(conts)):
         x, y, w, h = cv2.boundingRect(conts[i])

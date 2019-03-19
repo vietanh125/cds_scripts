@@ -14,7 +14,7 @@ stored_time = 0.0
 
 
 class SegmentToSteer():
-    def __init__(self, square=3, margin=30, roi=1/3, size=7):
+    def __init__(self, square=5, margin=30, roi=1/3, size=3):
         self.square = square
         self.margin = margin
         self.size = size
@@ -41,9 +41,9 @@ class SegmentToSteer():
 
         return -(self.k_p * self.error_proportional_ + self.k_i * self.error_integral_ + self.k_d * self.error_derivative_)
 
-    def get_point(self, img, flag):
+    def get_point(self, img, flag, roi):
         IMG_H, IMG_W = img.shape
-        i = int(IMG_H * self.roi)
+        i = int(IMG_H * roi)
         border = int((self.square - 1) / 2)
         i_l = border
         i_r = IMG_W - 1 - border
@@ -65,11 +65,11 @@ class SegmentToSteer():
                     turn_right = True
                 break
             i_r -= (border + 1)
-        if turn_left and turn_right and flag == 1:
+        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left and roi > self.roi):
             while img[i][i_r] == 255 and i >= 0:
 				i -= 1
             return i+1, i_r
-        elif turn_left and turn_right and flag == -1:
+        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right and roi > self.roi):
             while img[i][i_l] == 255 and i >= 0:
                 i -= 1
             return i+1, i_l
@@ -129,11 +129,11 @@ class SegmentToSteer():
             else:
                 pre_flag = current_flag
 
-        y, x = self.get_point(label, current_flag)
+        y, x = self.get_point(label, current_flag, roi)
 
         while label[y][x] == 0 and roi < 0.9:
             roi += 0.05
-            y, x = self.get_point(label, current_flag)
+            y, x = self.get_point(label, current_flag, roi)
 
         steer = np.arctan((x - IMG_W/2 + 1) / (IMG_H - float(y))) * 57.32
         steer = np.sign(steer) * min(60, abs(steer))
