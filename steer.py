@@ -104,12 +104,40 @@ class SegmentToSteer():
                     break
                 i_r -= (border + 1)
             if i_r > i_l:
-                img[i][int((i_l+i_r)/2)] = 127
+                # img[i][int((i_l+i_r)/2)] = 127
                 x += (i_r + i_l)/2
                 y += i
                 n_row += 1
             i += 1
         return int(y/n_row), int(x/n_row)
+    def get_point_3(self, img, flag):
+        IMG_H, IMG_W = img.shape
+        count = 0
+        turn_left = False
+        turn_right = False
+        x_left, y_left, x_right, y_right = 0, 0, 0, 0
+        for i in range(int(IMG_H * self.roi), IMG_H):
+            count += 1
+            left = 0
+            while img[i][left] != 255 and left < IMG_W/2:
+                left += 1
+            x_left += left
+            y_left += i
+            right = IMG_W-1
+            while img[i][right] != 255 and right >= IMG_W/2:
+                right -= 1
+            x_right += right
+            y_right += i
+        x_left, y_left = int(x_left/count), int(y_left/count)
+        x_right, y_right = int(x_right/count), int(y_right/count)
+        if x_left <= self.margin:
+            turn_left = True
+        if x_right >= IMG_W - self.margin:
+            turn_right = True
+        if (turn_left and not turn_right) or (turn_left and turn_right and flag == -1):
+            return y_left, x_left
+        elif (turn_right and not turn_left) or (turn_left and turn_right and flag == 1):
+            return y_right, x_right
 
     def discretize(self, steer):
         sign = np.sign(steer)
