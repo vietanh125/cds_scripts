@@ -13,7 +13,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json, load_model
 #from signRecognition import detect1
-from detection import detect
+from detection import detect, detect_3_channels
 import time
 import rospkg
 from steer import SegmentToSteer
@@ -24,7 +24,7 @@ end = time.time()
 start = time.time()
 check = True
 is_running = True
-t1 = 0
+# t1 = 0
 class Processor:
 	def __init__(self, model):
 		self.image = None
@@ -45,7 +45,7 @@ class Processor:
 		global is_running
 		global check
 		global start
-		global t1
+		# global t1
 		# if check == True:
 		# 	start = time.time()
 		# 	check = False
@@ -53,19 +53,19 @@ class Processor:
 		if delta >= 0.03 and is_running == True:
 			try:
 				self.image = self.convert_data_to_image(data.data)
-				flag, s = detect(self.image)
+				flag, s = detect_3_channels(self.image)
 				res = self.model.predict(self.image)
-				#cv2.imshow('image', self.image)
+				cv2.imshow('image', self.image)
 				#cv2.imshow('black and white', res*255.)
-				#cv2.waitKey(1)
+				cv2.waitKey(1)
 				speed, steer, res = self.s2s.get_steer(self.image, res*255., flag, s)
 				#cv2.imshow('road', res)
 				#cv2.waitKey(1)
 				# if time.time() - start <= 10:
 				# 	speed = 100
-				print (1/(time.time()-t1))
+				# print (1/(time.time()-t1))
 				self.publish_data(speed, -steer)
-				t1 = time.time()
+				# t1 = time.time()
 			except CvBridgeError as e:
 				print(e)
 			end = time.time()

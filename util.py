@@ -37,7 +37,7 @@ class Utilities:
         self.bt3_status = False
         self.bt4_status = False
         self.ss_status = False
-        self.model = Model(self.path + 'TensorRT_FP16.pb')
+        self.model = Model(self.path + 'TensorRT_1M_FP16.pb')
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
