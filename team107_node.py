@@ -29,7 +29,6 @@ class Processor:
 	def __init__(self, model):
 		self.image = None
 		self.model = model
-		self.graph = tf.get_default_graph()
 		self.ss_sub = rospy.Subscriber('ss_status', Bool, self.run_callback, queue_size=1)
 		self.image_sub = rospy.Subscriber('/camera/rgb/image_raw/compressed', CompressedImage, self.callback, queue_size=1)
 		self.pub_speed = rospy.Publisher('/set_speed_car_api', Float32, queue_size=1)
@@ -53,21 +52,20 @@ class Processor:
 		delta = time.time() - end
 		if delta >= 0.03 and is_running == True:
 			try:
-				with self.graph.as_default():
-					self.image = self.convert_data_to_image(data.data)
-					flag, s = detect(self.image)
-					res = self.model.predict(self.image)
-					cv2.imshow('image', self.image)
-					cv2.imshow('black and white', res*255.)
-					cv2.waitKey(1)
-					speed, steer, res = self.s2s.get_steer(self.image, res*255., flag, s)
-					#cv2.imshow('road', res)
-					#cv2.waitKey(1)
-					# if time.time() - start <= 10:
-					# 	speed = 100
-					print (1/(time.time()-t1))
-					self.publish_data(speed, -steer)
-					t1 = time.time()
+				self.image = self.convert_data_to_image(data.data)
+				flag, s = detect(self.image)
+				res = self.model.predict(self.image)
+				#cv2.imshow('image', self.image)
+				#cv2.imshow('black and white', res*255.)
+				#cv2.waitKey(1)
+				speed, steer, res = self.s2s.get_steer(self.image, res*255., flag, s)
+				#cv2.imshow('road', res)
+				#cv2.waitKey(1)
+				# if time.time() - start <= 10:
+				# 	speed = 100
+				print (1/(time.time()-t1))
+				self.publish_data(speed, -steer)
+				t1 = time.time()
 			except CvBridgeError as e:
 				print(e)
 			end = time.time()
