@@ -30,9 +30,9 @@ class SegmentToSteer():
         self.k_p = 0.5
         self.k_i = 0.00
         self.k_d = 0.00
-        self.inc_p = 0.1
-        self.inc_i = 0.1
-        self.inc_d = 0.1
+        self.inc_p = 0.01
+        self.inc_i = 0.0001
+        self.inc_d = 0.01
 
     def pid(self, cte):
         self.error_integral_     += cte
