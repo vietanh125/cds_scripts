@@ -85,3 +85,36 @@ def detect_3_channels(img):
     # else:
     #     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
     #     return 0, 0
+def detect_3_channels(img):
+    img_h, img_w, _ = img.shape
+    imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(imgHSV, lowerBound, upperBound)
+    # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernalDilate)
+    # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernalDilate)
+    # mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernelOpen)
+    cv2.imshow("mask", mask)
+    cv2.waitKey(1)
+    conts, dum2 = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    list_pred = []
+    for i in range(0, len(conts)):
+        x, y, w, h = cv2.boundingRect(conts[i])
+        if w*h >= 100 and (w/h > 0.3 and w/h < 1.7):
+            crop = img[max(0, y - 1):min(y + h + 1, img_h), max(0, x - 1): min(x + w + 1, img_w)]
+            crop = cv2.resize(crop, (48, 48))
+            crop = np.expand_dims(crop, 0)
+            pred = model.predict(crop)
+            signal = np.argmax(pred[0])
+            acc = pred[0][signal]
+            list_pred.append([[x, y, h, w, signal], [acc]])
+    if len(list_pred) > 0:
+        argmax = np.argmax(list_pred, axis=0)
+        [x, y, h, w, signal], [acc] = list_pred[argmax[1]]
+        if acc > 0.8:
+            if signal == 0:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                return -1, h*w
+            elif signal == 1:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                return 1, h*w
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
+    return 0, 0
