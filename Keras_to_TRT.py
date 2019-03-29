@@ -32,7 +32,7 @@ def load():
 
 
 def load_keras_model(file_name):
-    f = open(file_name + '.json', 'r')
+    f = open('model-mobilenet-iter2-pretrain-data-bdd.json', 'r')
     with CustomObjectScope({'GlorotUniform': glorot_uniform()}):
         model = model_from_json(f.read())
     model.load_weights(file_name + '.h5')
@@ -61,10 +61,10 @@ def TF_to_TRT():
         input_graph_def=frozen_graph,
         outputs=your_outputs,
         max_batch_size=1,
-        max_workspace_size_bytes=2700000000,
+        max_workspace_size_bytes=2500000000,
         precision_mode=PRECISION)
 
-    with gfile.FastGFile("./tensorRT/TensorRT_1M_" + PRECISION + ".pb", 'wb') as f:
+    with gfile.FastGFile("./tensorRT/TensorRT_" + PRECISION + ".pb", 'wb') as f:
         f.write(trt_graph.SerializeToString())
     print("TensorRT model is successfully stored!")
     all_nodes = len([1 for n in frozen_graph.node])
@@ -85,8 +85,8 @@ def test(n_time_inference=50):
     input_img = np.zeros((1, 160, 320, 3))
     graph = tf.Graph()
     with graph.as_default():
-        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
-            trt_graph = read_pb_graph('./tensorRT/TensorRT_1M_'+ PRECISION + '.pb')
+        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
+            trt_graph = read_pb_graph('./tensorRT/TensorRT_'+ PRECISION + '.pb')
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
             output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
@@ -147,15 +147,15 @@ def inference_2(trt_graph):
             # out_pred = inference(sess, frame, input, output)
             t2 = time.time()
 
-            frame[out_pred == 1] = [0, 0, 255]
+            #frame[out_pred == 1] = [0, 0, 255]
             delta_time = t2 - t1
             total_time += delta_time
             if n_frame % 50 == 0:
                 print n_frame/total_time
-            cv2.imshow('frame', frame)
+            #cv2.imshow('frame', frame)
             ret, frame = cap.read()
-            if (cv2.waitKey(1) & 0xFF == ord('q')) or frame is None:
-                break
+            #if (cv2.waitKey(1) & 0xFF == ord('q')) or frame is None:
+                #break
             n_frame += 1
 
 
@@ -167,10 +167,10 @@ def pipe_line(keras_model_path):
     TF_to_TRT()
     test()
 
-#pipe_line("model-mobilenet-iter2-pretrain-data-bdd")
+pipe_line("model-mobilenet-iter3-pretrain-bdd")
 
 
-sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-trt = read_pb_graph("./tensorRT/TensorRT_FP16.pb")
-inference_2(trt)
+#sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
+#trt = read_pb_graph("./tensorRT/TensorRT_FP32.pb")
+#inference_2(trt)
 

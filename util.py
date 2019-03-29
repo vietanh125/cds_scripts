@@ -15,6 +15,7 @@ from rospkg import RosPack
 from team107_node import Processor
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, Float32, Bool
+from ssd import Detector
 from rospy import ROSException
 from model import Model
 
@@ -37,7 +38,8 @@ class Utilities:
         self.bt3_status = False
         self.bt4_status = False
         self.ss_status = False
-        self.model = Model(self.path + 'TensorRT_1M_FP16.pb')
+        self.model = Model(self.path)
+        self.sign_model = Detector(self.path)
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
@@ -129,7 +131,7 @@ class Utilities:
     def setup_engine(self):
         self.is_self_driving = True
         self.is_recording = False
-        self.engine = Processor(model=self.model)
+        self.engine = Processor(model=self.model, sign_model=self.sign_model)
         self.print_car_stats(self.engine.s2s.speed_max, self.engine.s2s.speed_min, self.engine.s2s.roi)
         time.sleep(1)
 
@@ -228,8 +230,6 @@ class Utilities:
 
 
 def main(args):
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     util = Utilities()
     try:
         rospy.spin()

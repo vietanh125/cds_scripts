@@ -9,7 +9,7 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 path = rospack.get_path('team107') + '/scripts/'
-model = load_model(path + 'updated_1.h5')
+model = load_model(path + 'updated.h5')
 
 model._make_predict_function()
 model.predict(np.zeros((1, 48, 48, 3)))

@@ -17,6 +17,7 @@ from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, Float32, Bool
 from rospy import ROSException
 from model import Model
+from ssd import Detector
 
 rospack = RosPack()
 
@@ -38,6 +39,7 @@ class Utilities:
         self.bt4_status = False
         self.ss_status = False
         self.model = Model(self.path + 'TensorRT_FP16.pb')
+        self.sign_model = Detector(self.path)
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
@@ -178,7 +180,7 @@ class Utilities:
     def setup_pid(self):
         self.is_self_driving = True
         self.is_recording = False
-        self.engine = Processor(model=self.model)
+        self.engine = Processor(model=self.model, sign_model=self.sign_model)
         self.print_pid_stats()
         time.sleep(1)
 
@@ -277,13 +279,11 @@ class Utilities:
     def print_pid_stats(self):
         self.pub_lcd.publish(self.clear_str)
         self.pub_lcd.publish('0:0:Kp ' + str(self.engine.s2s.k_p))
-        self.pub_lcd.publish('7:0:Ki ' + str(self.engine.s2s.k_i))
+        self.pub_lcd.publish('9:0:Ki ' + str(self.engine.s2s.k_i))
         self.pub_lcd.publish('0:2:Kd ' + str(self.engine.s2s.k_d))
 
 
 def main(args):
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     util = Utilities()
     try:
         rospy.spin()
