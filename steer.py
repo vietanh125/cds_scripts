@@ -21,7 +21,8 @@ class SegmentToSteer():
         self.margin = margin
         self.size = size
         self.memory = deque(iterable=np.zeros(size, dtype=np.uint8), maxlen=size)
-        self.speed_memory = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
+        self.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
+        self.direction_queue = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
         self.roi = 1 - roi
         self.speed_max = 25
         self.speed_min = 15
@@ -52,7 +53,6 @@ class SegmentToSteer():
         border = int((self.square - 1) / 2)
         i_l = left_restriction + border
         i_r = right_restriction - border
-        print "i_l:", i_l, " i_r:", i_r, " left res:", left_restriction, " right res:", right_restriction
         turn_left = False
         turn_right = False
         while i_l < right_restriction + 1 - border:
@@ -71,23 +71,29 @@ class SegmentToSteer():
                     turn_right = True
                 break
             i_r -= (border + 1)
-        
-        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left and flag != -1):
+
+        if (turn_left and turn_right and flag == 0):
+            flag = self.get_direction()
+        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left):
+            self.direction_queue.append(2)
             while img[i][i_r] == 255 and i >= 0:
                 i -= 1
-            print "turn right: ", turn_left, turn_right, str(flag)
             return i + 1, i_r
-        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right and flag != 1):
+        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right):
+            self.direction_queue.append(0)
             while img[i][i_l] == 255 and i >= 0:
                 i -= 1
-            print "turn left: ", turn_left, turn_right, str(flag)
             return i + 1, i_l
         else:
-            print "straight: ", turn_left, turn_right, str(flag)
+            self.direction_queue.append(1)
             return i, int((i_l + i_r) / 2)
 
     def get_flag(self):
         arr = np.asarray(self.memory, np.int8)
+        return np.bincount(arr).argmax() - 1
+
+    def get_direction(self):
+        arr = np.asarray(self.direction_queue, np.int8)
         return np.bincount(arr).argmax() - 1
 
     def mean_speed_queue(self):
@@ -188,10 +194,10 @@ class SegmentToSteer():
         # speed = max(self.speed_min, self.speed_max*np.cos(abs(steer)*np.pi/180))
         # speed = (self.speed_min -self.speed_max) * steer**2/ 3600 + self.speed_max
         # print left_restriction, right_restriction
-        if s > 0:
-            # print "accuracy ", str(s)
+        if s > 0.96:
+            print "accuracy ", str(s)
             # speed = 12/(s**3)
-            self.speed_memory.append(min(12 / (s ** 3), self.speed_max))
+            self.speed_memory.append(min(15 / (s ** 3), self.speed_max))
         else:
             self.speed_memory.append((self.speed_min - self.speed_max) * steer**2/ 3600 + self.speed_max)
         speed = self.mean_speed_queue()

@@ -87,6 +87,8 @@ class Processor:
         size = (upper_y - lower_y) * range
         max_value = 255
         ratio = 0.5
+        left_border = 0.2
+        right_border = 1 - left_border
 
         while i - range >= 0:
             if left_obs and right_obs:
@@ -121,13 +123,13 @@ class Processor:
             else:
                 self.left_restriction = 0
                 self.right_restriction = IMG_W - 1
-        elif self.left_restriction >= 0.1 * IMG_W and self.right_restriction >= 0.9 * IMG_W:
+        elif self.left_restriction >= left_border * IMG_W and self.right_restriction >= right_border * IMG_W:
             self.left_restriction = int(ratio * IMG_W)
             self.right_restriction = IMG_W - 1
-        elif self.right_restriction <= 0.9 * IMG_W and self.left_restriction <= 0.1 * IMG_W:
+        elif self.right_restriction <= right_border * IMG_W and self.left_restriction <= left_border * IMG_W:
             self.right_restriction = int((1 - ratio) * IMG_W)
             self.left_restriction = 0
-        elif self.left_restriction >= 0.1 * IMG_W and self.right_restriction <= 0.9 * IMG_W:
+        elif self.left_restriction >= left_border * IMG_W and self.right_restriction <= right_border * IMG_W:
             self.left_restriction = 0
             self.right_restriction = IMG_W - 1
 
@@ -159,8 +161,8 @@ class Processor:
                 # cv2.waitKey(1)
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., self.flag, sharp, self.left_restriction,
                                                        self.right_restriction)
-                cv2.imshow('black and white', res)
-                cv2.waitKey(1)
+                #cv2.imshow('black and white', res)
+                #cv2.waitKey(1)
                 # cv2.imshow('road', res)
                 # cv2.waitKey(1)
                 # if time.time() - start <= 10:
@@ -174,7 +176,7 @@ class Processor:
                 print(e)
             end = time.time()
         elif is_running == False:
-            self.s2s.speed_memory = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
+            self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
             self.s2s.error_proportional_ = 0.0
             self.s2s.error_integral_ = 0.0
             self.s2s.error_derivative_ = 0.0
