@@ -13,23 +13,6 @@ from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from tensorflow.keras import applications
 PRECISION = "FP32"
-def load():
-    mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))
-    x = mbl.output
-    model_tmp = Model(inputs=mbl.input, outputs=x)
-    layer5, layer8, layer13 = model_tmp.get_layer('conv_pw_5_relu').output, model_tmp.get_layer(
-        'conv_pw_8_relu').output, model_tmp.get_layer('conv_pw_13_relu').output
-    fcn14 = Conv2D(filters=2, kernel_size=1, name='fcn14')(layer8)
-    fcn16 = Conv2DTranspose(filters=layer5.get_shape().as_list()[-1], kernel_size=4, strides=2, padding='same',
-                            name="fcn16_conv2d")(fcn14)
-    # Add skip connection
-    fcn16_skip_connected = Add(name="fcn16_plus_vgg_layer5")([fcn16, layer5])
-    # Upsample again
-    fcn17 = Conv2DTranspose(filters=2, kernel_size=16, strides=(8, 8), padding='same', name="fcn17",
-                            activation="softmax")(fcn16_skip_connected)
-    model = Model(inputs=mbl.input, outputs=fcn17)
-    model.load_weights('model-mobilenet-1M-iter12-pretrain-bdd.h5')
-
 
 def load_keras_model(file_name):
     f = open('model-mobilenet-iter2-pretrain-data-bdd.json', 'r')
@@ -44,6 +27,7 @@ def keras_to_TF():
     sess = tf.keras.backend.get_session()
     save_path = saver.save(sess, "./tensorRT/model")
     print("Keras model is successfully converted to TF graph in " + save_path)
+    sess.close()
 
 
 def TF_to_TRT():
@@ -64,7 +48,7 @@ def TF_to_TRT():
         max_workspace_size_bytes=2500000000,
         precision_mode=PRECISION)
 
-    with gfile.FastGFile("./tensorRT/TensorRT_" + PRECISION + ".pb", 'wb') as f:
+    with gfile.FastGFile("./tensorRT/TensorRT_1234_" + PRECISION + ".pb", 'wb') as f:
         f.write(trt_graph.SerializeToString())
     print("TensorRT model is successfully stored!")
     all_nodes = len([1 for n in frozen_graph.node])
@@ -86,7 +70,7 @@ def test(n_time_inference=50):
     graph = tf.Graph()
     with graph.as_default():
         with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
-            trt_graph = read_pb_graph('./tensorRT/TensorRT_'+ PRECISION + '.pb')
+            trt_graph = read_pb_graph('./tensorRT/TensorRT_1234_'+ PRECISION + '.pb')
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
             output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
@@ -120,57 +104,13 @@ def test(n_time_inference=50):
             print "average inference time: ", avg_time_original_model
             print "TensorRT improvement compared to the original model:", avg_time_original_model / avg_time_tensorRT
 
-def inference(sess, frame, input, output):
-    gray = np.expand_dims(frame, axis=0)
-    out_pred = sess.run(output, feed_dict={input: gray/255.})
-    out_pred = np.argmax(out_pred, axis=3)[0]
-    return out_pred
-
-def inference_2(trt_graph):
-    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.6))) as sess:
-        tf.import_graph_def(trt_graph, name='')
-        input = sess.graph.get_tensor_by_name('input_1:0')
-        output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
-        cap = cv2.VideoCapture('output.avi')
-        total_time = 0
-        ret, frame = cap.read()
-        frame = cv2.resize(frame[:500, :], (320, 160))
-        gray = np.expand_dims(frame, axis=0)
-        out_pred = sess.run(output, feed_dict={input: gray/255.})
-        n_frame = 1
-        while (True):
-            t1 = time.time()
-            frame = cv2.resize(frame[:500, :], (320, 160))
-            gray = np.expand_dims(frame, axis=0)
-            out_pred = sess.run(output, feed_dict={input: gray/255.})
-            out_pred = np.argmax(out_pred, axis=3)[0]
-            # out_pred = inference(sess, frame, input, output)
-            t2 = time.time()
-
-            #frame[out_pred == 1] = [0, 0, 255]
-            delta_time = t2 - t1
-            total_time += delta_time
-            if n_frame % 50 == 0:
-                print n_frame/total_time
-            #cv2.imshow('frame', frame)
-            ret, frame = cap.read()
-            #if (cv2.waitKey(1) & 0xFF == ord('q')) or frame is None:
-                #break
-            n_frame += 1
-
-
 
 def pipe_line(keras_model_path):
-    #load_keras_model(keras_model_path)
-    # load()
-    #keras_to_TF()
+    load_keras_model(keras_model_path)
+    keras_to_TF()
     TF_to_TRT()
     test()
 
-pipe_line("model-mobilenet-iter3-pretrain-bdd")
+pipe_line("model-mobilenet-iter1234-pretrain-bdd")
 
-
-#sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5)))
-#trt = read_pb_graph("./tensorRT/TensorRT_FP32.pb")
-#inference_2(trt)
 

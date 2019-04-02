@@ -17,10 +17,12 @@ import time
 import rospkg
 from steer import SegmentToSteer
 from cv_bridge import CvBridge, CvBridgeError
+from collections import deque
 
 rospack = rospkg.RosPack()
 path = rospack.get_path('team107') + '/scripts/'
 end = time.time()
+end_depth = time.time()
 start = time.time()
 check = True
 is_running = True
@@ -42,102 +44,92 @@ class Processor:
         self.pub_speed = rospy.Publisher('/set_speed_car_api', Float32, queue_size=1)
         self.pub_steerAngle = rospy.Publisher('/set_steer_car_api', Float32, queue_size=1)
         self.lastTime = time.time()
-        self.s2s = SegmentToSteer(square=3, margin=10, roi=0.45)
+        self.s2s = SegmentToSteer(square=3, margin=20, roi=0.45)
         self.left_restriction = 0
         self.right_restriction = 319
 
     def depth_callback(self, data):
-        global end
+        global end_depth
         global is_running
-        delta = time.time() - end
+        delta = time.time() - end_depth
         if delta >= 0.03 and is_running:
             try:
                 # convert_data(data.data)
                 img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
                 img = cv2.resize(img, (320, 160))
-                self.check_obstacle_2(img, 0.005)
-                img *= 10
+                lower_y = int(4 * 160 / 16)
+                upper_y = int(12 * 160 / 16)
+                img = img[lower_y:upper_y]
+                img = np.float32(img)
+                img *= 255.0 / 65535
+                img = np.uint8(img)
+                img = cv2.medianBlur(img, 5)
+                # img *= 10
+                ret, thresh1 = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+                self.check_obstacle_2(thresh1, 0.5)
+                # img *= 10
                 # cv2.imshow('depth_left', img[90:159,  :int(0.25*IMG_W)])
-                cv2.imshow('depth', img)
-                cv2.waitKey(1)
+                # cv2.imshow('depth', img)
             except CvBridgeError, e:
                 print e
+            end_depth = time.time()
 
-    def check_obstacle(self, img, threshold):
-        IMG_H = 160
-        IMG_W = 320
+    def check_obstacle_2(self, img, threshold):
+        IMG_H, IMG_W = img.shape
         self.left_restriction = 0
         self.right_restriction = IMG_W - 1
         left_obs = False
         right_obs = False
         i = int(0.5 * IMG_W)
         range = int(0.05 * IMG_W)
-        lower_y = int(9 * IMG_H / 16)
-        size = (IMG_H - lower_y) * range
-        expansion = 15
-        while i - range >= 0.25 * IMG_W:
-            if left_obs and right_obs:
-                break
-            if not left_obs:
-                check = img[lower_y:IMG_H, i - range:i]
-                left_check = np.sum(check) / (65535 * size)
-                if left_check <= threshold:
-                    left_obs = True
-                    self.left_restriction = i + expansion
-            if not right_obs:
-                check = img[lower_y:IMG_H, IMG_W - i: IMG_W - i + range]
-                right_check = np.sum(check) / (65535 * size)
-                if right_check <= threshold:
-                    right_obs = True
-                    self.right_restriction = IMG_W - i - expansion
-            i -= range
-        if self.left_restriction >= self.right_restriction:
-            self.left_restriction = 0
-            self.right_restriction = IMG_W - 1
+        lower_y = 0
+        upper_y = IMG_H
+        size = (upper_y - lower_y) * range
+        max_value = 255
+        ratio = 0.5
 
-    def check_obstacle_2(self, img, threshold):
-        IMG_H = 160
-        IMG_W = 320
-        self.left_restriction = 0
-        self.right_restriction = IMG_W - 1
-        left_obs = False
-        right_obs = False
-        i = int(0.5*IMG_W)
-        range = int(0.05 * IMG_W)
-        lower_y = int(9 * IMG_H / 16)
-        size = (IMG_H - lower_y) * range
         while i - range >= 0:
             if left_obs and right_obs:
                 break
             if not left_obs:
-                check = img[lower_y:IMG_H, i-range:i]
-                left_check = np.sum(check)/(65535 * size)
+                check = img[lower_y:upper_y, i - range:i]
+                left_check = np.sum(check) / (max_value * size)
                 if left_check <= threshold:
                     left_obs = True
                     self.left_restriction = i
             if not right_obs:
-                check = img[lower_y:IMG_H,  IMG_W - i: IMG_W - i + range]
-                right_check = np.sum(check)/(65535 * size)
+                check = img[lower_y:upper_y, IMG_W - i: IMG_W - i + range]
+                right_check = np.sum(check) / (max_value * size)
                 if right_check <= threshold:
                     right_obs = True
                     self.right_restriction = IMG_W - i
             i -= range
         if self.left_restriction >= self.right_restriction:
             i += range
-            while np.sum(img[lower_y:IMG_H, self.left_restriction - range:self.left_restriction])/(65535 * size) <= threshold and self.left_restriction - range >= 0:
+            while np.sum(img[lower_y:upper_y, self.left_restriction - range:self.left_restriction]) / (
+                    max_value * size) <= threshold and self.left_restriction - range >= 0:
                 self.left_restriction -= range
-            while np.sum(img[lower_y:IMG_H, self.right_restriction: self.right_restriction + range])/(65535 * size) <= threshold and self.right_restriction + range <= IMG_W:
+            while np.sum(img[lower_y:upper_y, self.right_restriction: self.right_restriction + range]) / (
+                    max_value * size) <= threshold and self.right_restriction + range <= IMG_W:
                 self.right_restriction += range
             if i - self.left_restriction > self.right_restriction - i:
-                self.left_restriction = self.right_restriction
+                self.left_restriction = int(ratio * IMG_W)
                 self.right_restriction = IMG_W - 1
             elif i - self.left_restriction < self.right_restriction - i:
-                self.right_restriction = self.left_restriction
+                self.right_restriction = int((1 - ratio) * IMG_W)
                 self.left_restriction = 0
             else:
                 self.left_restriction = 0
                 self.right_restriction = IMG_W - 1
-
+        elif self.left_restriction >= 0.1 * IMG_W and self.right_restriction >= 0.9 * IMG_W:
+            self.left_restriction = int(ratio * IMG_W)
+            self.right_restriction = IMG_W - 1
+        elif self.right_restriction <= 0.9 * IMG_W and self.left_restriction <= 0.1 * IMG_W:
+            self.right_restriction = int((1 - ratio) * IMG_W)
+            self.left_restriction = 0
+        elif self.left_restriction >= 0.1 * IMG_W and self.right_restriction <= 0.9 * IMG_W:
+            self.left_restriction = 0
+            self.right_restriction = IMG_W - 1
 
     def run_callback(self, data):
         global is_running
@@ -158,22 +150,23 @@ class Processor:
                 self.image = self.convert_data_to_image(data.data)
                 if self.frame % 8 == 0:
                     self.flag, s = self.sign_model.predict(self.image)
-                    # print self.flag
                     self.frame = 0
                 self.image = cv2.resize(self.image, (320, 160))
                 res, sharp = self.model.predict(self.image)
-
-                speed, steer, res = self.s2s.get_steer(self.image, res * 255., self.flag, 0, self.left_restriction,
-                                                       self.right_restriction)
-                # cv2.imshow('black and white', res)
+                # cv2.line(self.image, (self.left_restriction, 0), (self.left_restriction, 159), (0, 255, 0), 2)
+                # cv2.line(self.image, (self.right_restriction, 0), (self.right_restriction, 159), (0, 255, 0), 2)
+                # cv2.imshow('image', self.image)
                 # cv2.waitKey(1)
+                speed, steer, res = self.s2s.get_steer(self.image, res * 255., self.flag, sharp, self.left_restriction,
+                                                       self.right_restriction)
+                cv2.imshow('black and white', res)
+                cv2.waitKey(1)
                 # cv2.imshow('road', res)
                 # cv2.waitKey(1)
                 # if time.time() - start <= 10:
                 # 	speed = 100
                 # print (1/(time.time()-t1))
-                if sharp == 1:
-                    speed = 12
+
                 self.publish_data(speed, -steer)
                 # t1 = time.time()
                 self.frame += 1
@@ -181,6 +174,7 @@ class Processor:
                 print(e)
             end = time.time()
         elif is_running == False:
+            self.s2s.speed_memory = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
             self.s2s.error_proportional_ = 0.0
             self.s2s.error_integral_ = 0.0
             self.s2s.error_derivative_ = 0.0

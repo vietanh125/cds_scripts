@@ -46,8 +46,8 @@ class Detector(object):
 
             score = self.clf.predict(area)[0][0]
 
-            if score < 0.25:
+            if score < 0.2:
                 return -1, 0
-            elif score > 0.75:
+            elif score > 0.8:
                 return 1, 0
         return 0, 0
