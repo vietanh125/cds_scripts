@@ -9,10 +9,8 @@ import rospy
 import cv2
 from std_msgs.msg import String, Float32, Bool
 from sensor_msgs.msg import CompressedImage, Image
-from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import model_from_json, load_model
+
 import time
 import rospkg
 from steer import SegmentToSteer
@@ -44,9 +42,10 @@ class Processor:
         self.pub_speed = rospy.Publisher('/set_speed_car_api', Float32, queue_size=1)
         self.pub_steerAngle = rospy.Publisher('/set_steer_car_api', Float32, queue_size=1)
         self.lastTime = time.time()
-        self.s2s = SegmentToSteer(square=3, margin=20, roi=0.45)
+        self.s2s = SegmentToSteer(square=3, margin=20, roi=0.4)
         self.left_restriction = 0
         self.right_restriction = 319
+        self.obstacle_time = 0.0
 
     def depth_callback(self, data):
         global end_depth
@@ -66,7 +65,7 @@ class Processor:
                 img = cv2.medianBlur(img, 5)
                 # img *= 10
                 ret, thresh1 = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
-                self.check_obstacle_2(thresh1, 0.5)
+                self.check_obstacle_2(thresh1, 0.5, delta)
                 # img *= 10
                 # cv2.imshow('depth_left', img[90:159,  :int(0.25*IMG_W)])
                 # cv2.imshow('depth', img)
@@ -74,22 +73,26 @@ class Processor:
                 print e
             end_depth = time.time()
 
-    def check_obstacle_2(self, img, threshold):
+    def check_obstacle_2(self, img, threshold, interval):
         IMG_H, IMG_W = img.shape
         self.left_restriction = 0
         self.right_restriction = IMG_W - 1
         left_obs = False
         right_obs = False
         i = int(0.5 * IMG_W)
-        range = int(0.05 * IMG_W)
+        range = int(0.1 * IMG_W)
         lower_y = 0
         upper_y = IMG_H
         size = (upper_y - lower_y) * range
         max_value = 255
         ratio = 0.5
-        left_border = 0.2
+        left_border = 0.15
         right_border = 1 - left_border
+        if self.obstacle_time > 0 and self.obstacle_time < 2:
+            self.obstacle_time += interval
+            return
 
+        self.obstacle_time = 0.0
         while i - range >= 0:
             if left_obs and right_obs:
                 break
@@ -129,9 +132,10 @@ class Processor:
         elif self.right_restriction <= right_border * IMG_W and self.left_restriction <= left_border * IMG_W:
             self.right_restriction = int((1 - ratio) * IMG_W)
             self.left_restriction = 0
-        elif self.left_restriction >= left_border * IMG_W and self.right_restriction <= right_border * IMG_W:
+        elif self.left_restriction >= 0.15 * IMG_W and self.right_restriction <= 0.85 * IMG_W:
             self.left_restriction = 0
             self.right_restriction = IMG_W - 1
+            self.obstacle_time += interval
 
     def run_callback(self, data):
         global is_running

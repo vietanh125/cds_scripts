@@ -26,12 +26,13 @@ class SegmentToSteer():
         self.roi = 1 - roi
         self.speed_max = 25
         self.speed_min = 15
+        self.speed_brake = 15
+        self.acc_threshold = 0.95
         # self.steer_pid = PID(Kp=self.p[0], Ki=self.p[1], Kd=self.p[2])
         # self.steer_pid.setWindup(50)
         self.error_proportional_ = 0.0
         self.error_integral_ = 0.0
         self.error_derivative_ = 0.0
-
         self.k_p = 0.5
         self.k_i = 0.00
         self.k_d = 0.00
@@ -74,12 +75,12 @@ class SegmentToSteer():
 
         if (turn_left and turn_right and flag == 0):
             flag = self.get_direction()
-        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left):
+        if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left and flag != -1):
             self.direction_queue.append(2)
             while img[i][i_r] == 255 and i >= 0:
                 i -= 1
             return i + 1, i_r
-        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right):
+        elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right and flag != 1):
             self.direction_queue.append(0)
             while img[i][i_l] == 255 and i >= 0:
                 i -= 1
@@ -135,9 +136,11 @@ class SegmentToSteer():
         IMG_H, IMG_W = label.shape
         interval = time.time() - last
         last = time.time()
+        have_obstacle = False
+        if left_restriction >= 0.5 * IMG_W or right_restriction <= 0.5 * IMG_W:
+            have_obstacle = True
         current_flag = 0
         roi = self.roi
-
         if total_time > 0 and total_time < 2:
             if flag != pre_flag and flag != 0:
                 total_time = 0
@@ -166,6 +169,8 @@ class SegmentToSteer():
         # x = get_cte(label, current_flag, self.square, 1)
         steer = np.arctan((x - IMG_W / 2 + 1) / (IMG_H - float(y))) * 57.32
         steer = np.sign(steer) * min(60, abs(steer))
+        # steer = self.last_steer * self.beta + steer * (1 - self.beta)
+        # self.last_steer = steer
         # PID tuning
         # self.steer_pid.updateError(x - IMG_W/2 + 1)
         # new_steer = -self.steer_pid.output()
@@ -194,12 +199,14 @@ class SegmentToSteer():
         # speed = max(self.speed_min, self.speed_max*np.cos(abs(steer)*np.pi/180))
         # speed = (self.speed_min -self.speed_max) * steer**2/ 3600 + self.speed_max
         # print left_restriction, right_restriction
-        if s > 0.96:
+        if s > self.acc_threshold:
             print "accuracy ", str(s)
             # speed = 12/(s**3)
-            self.speed_memory.append(min(15 / (s ** 3), self.speed_max))
+            self.speed_memory.append(min(self.speed_brake / (s ** 5), self.speed_max))
         else:
             self.speed_memory.append((self.speed_min - self.speed_max) * steer**2/ 3600 + self.speed_max)
+            if not have_obstacle or roi >= self.roi:
+                steer /= 2
         speed = self.mean_speed_queue()
 
         # label = self.write_vector(label, x, y, steer)

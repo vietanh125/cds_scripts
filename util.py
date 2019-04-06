@@ -5,15 +5,8 @@ import cv2
 import numpy as np
 import os
 import time
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import *
-from tensorflow.keras import backend as K
-from tensorflow.keras.models import Model
-from tensorflow.keras import applications
 from rospkg import RosPack
 from team107_node import Processor
-from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, Float32, Bool
 from ssd import Detector
 from rospy import ROSException
@@ -27,7 +20,7 @@ class Utilities:
         # params
         self.count = 1
         self.clear_str = '0:0:                                                                                '
-        self.is_recording = False
+        self.is_configuring = False
         self.is_self_driving = False
         self.first_load = True
         self.engine = None
@@ -79,7 +72,7 @@ class Utilities:
 
     # button interactions
     def check_btns(self):
-        if not self.is_recording and not self.is_self_driving:
+        if  not self.is_self_driving:
             try:
                 if self.first_load:
                     self.pub_lcd.publish(self.clear_str)
@@ -87,84 +80,46 @@ class Utilities:
                     self.first_load = False
             except ROSException:
                 pass
-            if self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
-                self.setup_record()
-                self.record_control()
-            elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
+            if not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
                 self.setup_engine()
                 self.engine_control()
-        elif self.is_recording:
-            self.record_control()
         elif self.is_self_driving:
             self.engine_control()
-
-    # record functions
-    def setup_record(self):
-        self.is_recording = True
-        self.is_self_driving = False
-        self.bt1_status = False
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video_recorder = cv2.VideoWriter(self.path + '/segment_data/' + str(time.time()) + '.mp4', fourcc, 20.0,
-                                              (640, 480))
-        self.pub_lcd.publish(self.clear_str)
-        self.sub_img = rospy.Subscriber('/camera/rgb/image_raw/compressed', CompressedImage, self.image_callback,
-                                        queue_size=1)
-        self.pub_lcd.publish('0:0:' + self.free_space('/home'))
-        print 'start recording'
-        time.sleep(1)
-
-    def record_control(self):
-        if self.bt1_status and self.bt2_status and self.bt3_status and not self.bt4_status:
-            self.turn_off_record()
-
-    def turn_off_record(self):
-        self.is_recording = False
-        self.sub_img.unregister()
-        self.video_recorder.release()
-        self.pub_lcd.publish(self.clear_str)
-        self.pub_lcd.publish("0:0:Finish recording data")
-        self.first_load = True
-        print 'turnning off'
-        time.sleep(1)
 
     # engine functions
     def setup_engine(self):
         self.is_self_driving = True
         self.is_recording = False
         self.engine = Processor(model=self.model, sign_model=self.sign_model)
-        self.print_car_stats(self.engine.s2s.speed_max, self.engine.s2s.speed_min, self.engine.s2s.roi)
+        self.print_car_stats()
         time.sleep(1)
 
     def engine_control(self):
-        if self.bt1_status and self.bt2_status and self.bt3_status and not self.bt4_status:
-            self.turn_off_engine()
-        elif self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
-            self.change_max_speed(1)
-        elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
-            self.change_min_speed(1)
-        elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
-            self.change_roi(0.05)
-        elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
-            self.change_max_speed(-1)
-        elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
-            self.change_min_speed(-1)
-        elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
-            self.change_roi(-0.05)
+        if not self.is_configuring:
+            if self.bt1_status and self.bt2_status and self.bt3_status and not self.bt4_status:
+                self.turn_off_engine()
+            elif self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
+                self.change_max_speed(1)
+            elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
+                self.change_min_speed(1)
+            elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
+                self.setup_configuration()
+                self.configuration_control()
+            elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
+                self.change_max_speed(-1)
+            elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
+                self.change_min_speed(-1)
+        elif self.is_configuring:
+            self.configuration_control()
 
     def change_max_speed(self, amount):
         self.engine.s2s.speed_max += amount
-        self.print_car_stats(self.engine.s2s.speed_max, self.engine.s2s.speed_min, self.engine.s2s.roi)
+        self.print_car_stats()        
         time.sleep(0.5)
 
     def change_min_speed(self, amount):
         self.engine.s2s.speed_min += amount
-        self.print_car_stats(self.engine.s2s.speed_max, self.engine.s2s.speed_min, self.engine.s2s.roi)
-        time.sleep(0.5)
-
-    def change_roi(self, amount):
-        change = self.engine.s2s.roi + amount
-        self.engine.s2s.roi = max(0.1, min(change, 0.9))
-        self.print_car_stats(self.engine.s2s.speed_max, self.engine.s2s.speed_min, self.engine.s2s.roi)
+        self.print_car_stats()        
         time.sleep(0.5)
 
     def turn_off_engine(self):
@@ -176,40 +131,39 @@ class Utilities:
         self.first_time = True
         time.sleep(1)
 
-    # utility functions
-    def load_model(self):
-        from tensorflow.keras.models import model_from_json
-        json_file = open(self.path+'model.json', 'r')
-        loaded_model_json = json_file.read()
-        loaded_model = model_from_json(loaded_model_json)
-        loaded_model.load_weights(self.path+"model.h5")
-        loaded_model._make_predict_function()
-        print ("model 1M loaded")
-        return loaded_model
+    #change brake config
+    def setup_configuration(self):
+        self.is_configuring = True
+        self.print_brake_stats()
+        time.sleep(1)
 
-    def load_model_segment(self):
-        mbl = applications.mobilenet.MobileNet(weights=None, include_top=False, input_shape=(160, 320, 3))
-        x = mbl.output
-        model_tmp = Model(inputs=mbl.input, outputs=x)
-        layer5, layer8, layer13 = model_tmp.get_layer('conv_pw_5_relu').output, model_tmp.get_layer(
-            'conv_pw_8_relu').output, model_tmp.get_layer('conv_pw_13_relu').output
+    def configuration_control(self):
+        if self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
+            self.change_brake_speed(1)
+        elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
+            self.change_accuracy_threshold(0.01)
+        elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
+            self.exit_configuration()
+        elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
+            self.change_brake_speed(-1)
+        elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
+            self.change_accuracy_threshold(-0.01)
 
-        fcn14 = Conv2D(filters=2, kernel_size=1, name='fcn14')(layer13)
-        fcn15 = Conv2DTranspose(filters=layer8.get_shape().as_list()[-1], kernel_size=4, strides=2, padding='same',
-                                name='fcn15')(fcn14)
-        fcn15_skip_connected = Add(name="fcn15_plus_vgg_layer8")([fcn15, layer8])
-        fcn16 = Conv2DTranspose(filters=layer5.get_shape().as_list()[-1], kernel_size=4, strides=2, padding='same',
-                                name="fcn16_conv2d")(fcn15_skip_connected)
-        # Add skip connection
-        fcn16_skip_connected = Add(name="fcn16_plus_vgg_layer5")([fcn16, layer5])
-        # Upsample again
-        fcn17 = Conv2DTranspose(filters=2, kernel_size=16, strides=(8, 8), padding='same', name="fcn17",
-                                activation="softmax")(fcn16_skip_connected)
-        m = Model(inputs=mbl.input, outputs=fcn17)
-        m.load_weights(self.path + 'model-mobilenet-iter2-pretrain-data-bdd.h5')
-        m.predict(np.zeros((1, 160, 320, 3), dtype=np.float32))
-        print("Model loaded")
-        return m
+    def exit_configuration(self):
+        self.is_configuring = False
+        self.pub_lcd.publish(self.clear_str)
+        self.print_car_stats()
+        time.sleep(1)
+
+    def change_brake_speed(self, amount):
+        self.engine.s2s.speed_brake += amount
+        self.print_brake_stats()
+        time.sleep(0.5)
+
+    def change_accuracy_threshold(self, amount):
+        self.engine.s2s.acc_threshold = max(min(self.engine.s2s.acc_threshold + amount, 1.0), 0.0)
+        self.print_brake_stats()
+        time.sleep(0.5)
 
     def convert_to_image(self, data):
         arr = np.fromstring(data, np.uint8)
@@ -222,12 +176,15 @@ class Utilities:
         free = st.f_bavail * st.f_frsize
         return "free " + str(free / (1000 * 1000)) + "MB"
 
-    def print_car_stats(self, speed_max, speed_min, roi):
+    def print_car_stats(self):
         self.pub_lcd.publish(self.clear_str)
-        self.pub_lcd.publish('0:0:max ' + str(speed_max))
-        self.pub_lcd.publish('7:0:min ' + str(speed_min))
-        self.pub_lcd.publish('0:2:roi ' + str(roi))
+        self.pub_lcd.publish('0:0:max ' + str(self.engine.s2s.speed_max))
+        self.pub_lcd.publish('7:0:min ' + str(self.engine.s2s.speed_min))
 
+    def print_brake_stats(self):
+        self.pub_lcd.publish(self.clear_str)
+        self.pub_lcd.publish('0:0:brk ' + str(self.engine.s2s.speed_brake))
+        self.pub_lcd.publish('7:0:acc ' + str(self.engine.s2s.acc_threshold))        
 
 def main(args):
     util = Utilities()

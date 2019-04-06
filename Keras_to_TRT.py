@@ -48,7 +48,7 @@ def TF_to_TRT():
         max_workspace_size_bytes=2500000000,
         precision_mode=PRECISION)
 
-    with gfile.FastGFile("./tensorRT/TensorRT_1234_" + PRECISION + ".pb", 'wb') as f:
+    with gfile.FastGFile("./tensorRT/TensorRT_1234add_new_" + PRECISION + ".pb", 'wb') as f:
         f.write(trt_graph.SerializeToString())
     print("TensorRT model is successfully stored!")
     all_nodes = len([1 for n in frozen_graph.node])
@@ -70,7 +70,7 @@ def test(n_time_inference=50):
     graph = tf.Graph()
     with graph.as_default():
         with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
-            trt_graph = read_pb_graph('./tensorRT/TensorRT_1234_'+ PRECISION + '.pb')
+            trt_graph = read_pb_graph('./tensorRT/TensorRT_1234add_new_'+ PRECISION + '.pb')
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
             output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
@@ -111,6 +111,6 @@ def pipe_line(keras_model_path):
     TF_to_TRT()
     test()
 
-pipe_line("model-mobilenet-iter1234-pretrain-bdd")
+pipe_line("model-mobilenet-iter1234add-pretrain-bdd")
 
 
