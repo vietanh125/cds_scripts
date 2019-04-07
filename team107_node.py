@@ -56,22 +56,25 @@ class Processor:
                 # convert_data(data.data)
                 img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
                 img = cv2.resize(img, (320, 160))
-                lower_y = int(4 * 160 / 16)
-                upper_y = int(12 * 160 / 16)
-                img = img[lower_y:upper_y]
-                img = np.float32(img)
-                img *= 255.0 / 65535
-                img = np.uint8(img)
-                img = cv2.medianBlur(img, 5)
-                # img *= 10
-                ret, thresh1 = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
-                self.check_obstacle_2(thresh1, 0.5, delta)
+                self.depth_preprocess(img, delta)
                 # img *= 10
                 # cv2.imshow('depth_left', img[90:159,  :int(0.25*IMG_W)])
                 # cv2.imshow('depth', img)
             except CvBridgeError, e:
                 print e
             end_depth = time.time()
+
+    def depth_preprocess(self, img, delta):
+        lower_y = int(4 * 160 / 16)
+        upper_y = int(12 * 160 / 16)
+        img = img[lower_y:upper_y]
+        img = np.float32(img)
+        img *= 255.0 / 65535
+        img = np.uint8(img)
+        img = cv2.medianBlur(img, 5)
+        # img *= 10
+        ret, thresh1 = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
+        self.check_obstacle_2(thresh1, 0.5, delta)
 
     def check_obstacle_2(self, img, threshold, interval):
         IMG_H, IMG_W = img.shape
@@ -85,7 +88,7 @@ class Processor:
         upper_y = IMG_H
         size = (upper_y - lower_y) * range
         max_value = 255
-        ratio = 0.5
+        ratio = 0.6
         left_border = 0.15
         right_border = 1 - left_border
         if self.obstacle_time > 0 and self.obstacle_time < 2:
@@ -159,14 +162,10 @@ class Processor:
                     self.frame = 0
                 self.image = cv2.resize(self.image, (320, 160))
                 res, sharp = self.model.predict(self.image)
-                # cv2.line(self.image, (self.left_restriction, 0), (self.left_restriction, 159), (0, 255, 0), 2)
-                # cv2.line(self.image, (self.right_restriction, 0), (self.right_restriction, 159), (0, 255, 0), 2)
-                # cv2.imshow('image', self.image)
-                # cv2.waitKey(1)
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., self.flag, sharp, self.left_restriction,
                                                        self.right_restriction)
-                #cv2.imshow('black and white', res)
-                #cv2.waitKey(1)
+                # cv2.imshow('black and white', res)
+                # cv2.waitKey(1)
                 # cv2.imshow('road', res)
                 # cv2.waitKey(1)
                 # if time.time() - start <= 10:

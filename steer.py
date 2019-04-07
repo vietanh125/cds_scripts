@@ -44,9 +44,41 @@ class SegmentToSteer():
         self.error_integral_ += cte
         self.error_derivative_ = cte - self.error_proportional_
         self.error_proportional_ = cte
+        return -(self.k_p * self.error_proportional_ + self.k_i * self.error_integral_ + self.k_d * self.error_derivative_)
 
-        return -(
-                    self.k_p * self.error_proportional_ + self.k_i * self.error_integral_ + self.k_d * self.error_derivative_)
+    def check_future_road(self, img, roi, left_restriction, right_restriction):
+        IMG_H, IMG_W = img.shape
+        i = int(IMG_H * roi)
+        border = int((self.square - 1) / 2)
+        i_l = left_restriction + border
+        i_r = right_restriction - border
+        has_road = False
+        turn_left = False
+        turn_right = False
+        while i_l < right_restriction + 1 - border:
+            check = img[i - border: i + border + 1, i_l - border: i_l + border + 1]
+            white = np.sum(check) / 255
+            if white == self.square ** 2:
+                if i_l <= self.margin:
+                    turn_left = True
+                has_road = True
+                break
+            i_l += (border + 1)
+        while i_r > i_l:
+            check = img[i - border: i + border + 1, i_r - border: i_r + border + 1]
+            white = np.sum(check) / 255
+            if white == self.square ** 2:
+                if i_r >= IMG_W - self.margin:
+                    turn_right = True
+                has_road = True
+                break
+            i_r -= (border + 1)
+        if turn_left and not turn_right:
+            return -1, has_road
+        elif turn_right and not turn_left:
+            return 1, has_road
+        return 0, has_road
+
 
     def get_point(self, img, flag, s, roi, left_restriction, right_restriction):
         IMG_H, IMG_W = img.shape
@@ -72,22 +104,27 @@ class SegmentToSteer():
                     turn_right = True
                 break
             i_r -= (border + 1)
-
+        road_property, has_road = self.check_future_road(img, 0.45, 0, IMG_W - 1)
         if (turn_left and turn_right and flag == 0):
             flag = self.get_direction()
         if (turn_left and turn_right and flag == 1) or (turn_right and not turn_left and flag != -1):
-            self.direction_queue.append(2)
-            while img[i][i_r] == 255 and i >= 0:
-                i -= 1
-            return i + 1, i_r
+            if not has_road or (has_road and road_property == 0) or flag == 1:
+                self.direction_queue.append(2)
+                # center = int((3*i_r + i_l)/4)
+                center = i_r
+                while img[i][center] == 255 and i >= 0:
+                    i -= 1
+                return i + 1, center
         elif (turn_left and turn_right and flag == -1) or (turn_left and not turn_right and flag != 1):
-            self.direction_queue.append(0)
-            while img[i][i_l] == 255 and i >= 0:
-                i -= 1
-            return i + 1, i_l
-        else:
-            self.direction_queue.append(1)
-            return i, int((i_l + i_r) / 2)
+            if not has_road or (has_road and road_property == 0) or flag == -1:
+                self.direction_queue.append(0)
+                # center = int((3*i_l + i_r)/4)
+                center = i_l
+                while img[i][center] == 255 and i >= 0:
+                    i -= 1
+                return i + 1, center
+        self.direction_queue.append(1)
+        return i, int((i_l + i_r) / 2)
 
     def get_flag(self):
         arr = np.asarray(self.memory, np.int8)
@@ -167,46 +204,18 @@ class SegmentToSteer():
 
         # x = max(0, min(x + self.check_obstacle(label, x, y, 1), 319))
         # x = get_cte(label, current_flag, self.square, 1)
-        steer = np.arctan((x - IMG_W / 2 + 1) / (IMG_H - float(y))) * 57.32
+        # steer = np.arctan((x - IMG_W / 2 + 1) / (IMG_H - float(y))) * 57.32
+        steer = -self.pid(x - IMG_W / 2 + 1)
         steer = np.sign(steer) * min(60, abs(steer))
         # steer = self.last_steer * self.beta + steer * (1 - self.beta)
-        # self.last_steer = steer
-        # PID tuning
-        # self.steer_pid.updateError(x - IMG_W/2 + 1)
-        # new_steer = -self.steer_pid.output()
-        # new_steer = -self.pid(x - IMG_W/2 + 1 )
-        # new_steer = -self.pid(steer/60) * 60
-        #
-        # new_steer = np.sign(new_steer) * min(60, abs(new_steer))
-
-        # print steer, new_steer
-        # print self.steer_pid.Kp, self.steer_pid.Ki, self.steer_pid.Kd
-        # twiddle_count_threshold = 500
-        # if self.steer_pid.update_count > twiddle_count_threshold:
-        #     self.steer_pid.twiddle()
-        # if current_flag != 0 or pre_flag != 0:
-        # speed = self.speed_min
-        # else:
-        # speed = max(self.speed_min, self.speed_max*np.cos(abs(steer)*np.pi/180))
-        # speed = (self.speed_min -self.speed_max) * new_steer**2/ 3600 + self.speed_max
-        # speed = self.speed_max
-        # label = self.write_vector(label, x, y, steer)
-        # return speed, new_steer, label.update_count > twiddle_count_threshold:
-        #     self.steer_pid.twiddle()
-        # if current_flag != 0 or pre_flag != 0:
-        # speed = self.speed_min
-        # else:
-        # speed = max(self.speed_min, self.speed_max*np.cos(abs(steer)*np.pi/180))
-        # speed = (self.speed_min -self.speed_max) * steer**2/ 3600 + self.speed_max
-        # print left_restriction, right_restriction
         if s > self.acc_threshold:
             print "accuracy ", str(s)
             # speed = 12/(s**3)
             self.speed_memory.append(min(self.speed_brake / (s ** 5), self.speed_max))
         else:
             self.speed_memory.append((self.speed_min - self.speed_max) * steer**2/ 3600 + self.speed_max)
-            if not have_obstacle or roi >= self.roi:
-                steer /= 2
+            # if not have_obstacle or roi >= self.roi:
+            #     steer /= 2
         speed = self.mean_speed_queue()
 
         # label = self.write_vector(label, x, y, steer)
