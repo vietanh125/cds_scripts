@@ -22,6 +22,7 @@ class Utilities:
         self.clear_str = '0:0:                                                                                '
         self.is_configuring = False
         self.is_self_driving = False
+        self.is_time_configuring = False
         self.first_load = True
         self.engine = None
         self.video_recorder = None
@@ -114,12 +115,12 @@ class Utilities:
 
     def change_max_speed(self, amount):
         self.engine.s2s.speed_max += amount
-        self.print_car_stats()        
+        self.print_car_stats()
         time.sleep(0.5)
 
     def change_min_speed(self, amount):
         self.engine.s2s.speed_min += amount
-        self.print_car_stats()        
+        self.print_car_stats()
         time.sleep(0.5)
 
     def turn_off_engine(self):
@@ -138,16 +139,22 @@ class Utilities:
         time.sleep(1)
 
     def configuration_control(self):
-        if self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
-            self.change_brake_speed(1)
-        elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
-            self.change_accuracy_threshold(0.01)
-        elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
-            self.exit_configuration()
-        elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
-            self.change_brake_speed(-1)
-        elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
-            self.change_accuracy_threshold(-0.01)
+        if not self.is_time_configuring:
+            if self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
+                self.change_brake_speed(1)
+            elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
+                self.change_accuracy_threshold(0.01)
+            elif not self.bt1_status and not self.bt2_status and self.bt3_status and not self.bt4_status:
+                self.setup_time_configuration()
+                self.time_control()
+            elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
+                self.exit_configuration()
+            elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
+                self.change_brake_speed(-1)
+            elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
+                self.change_accuracy_threshold(-0.01)
+        elif self.is_time_configuring:
+            self.time_control()
 
     def exit_configuration(self):
         self.is_configuring = False
@@ -163,6 +170,40 @@ class Utilities:
     def change_accuracy_threshold(self, amount):
         self.engine.s2s.acc_threshold = max(min(self.engine.s2s.acc_threshold + amount, 1.0), 0.0)
         self.print_brake_stats()
+        time.sleep(0.5)
+
+    #change time config
+    def setup_time_configuration(self):
+        self.is_time_configuring = True
+        self.print_time_stats()
+        time.sleep(1)
+
+    def time_control(self):
+        if self.bt1_status and not self.bt2_status and not self.bt3_status and not self.bt4_status:
+            self.change_obstacle_stop_time(0.1)
+        elif not self.bt1_status and self.bt2_status and not self.bt3_status and not self.bt4_status:
+            self.change_sign_stop_time(0.1)
+        elif self.bt1_status and not self.bt2_status and not self.bt3_status and self.bt4_status:
+            self.change_obstacle_stop_time(-0.1)
+        elif not self.bt1_status and self.bt2_status and not self.bt3_status and self.bt4_status:
+            self.change_sign_stop_time(-0.1)
+        elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
+            self.exit_time_configuration()
+
+    def exit_time_configuration(self):
+        self.is_time_configuring = False
+        self.pub_lcd.publish(self.clear_str)
+        self.print_brake_stats()
+        time.sleep(1)
+
+    def change_obstacle_stop_time(self, amount):
+        self.engine.total_time_thresh += amount
+        self.print_time_stats()
+        time.sleep(0.5)
+
+    def change_sign_stop_time(self, amount):
+        self.engine.s2s.total_time_steer_thresh += amount
+        self.print_time_stats()
         time.sleep(0.5)
 
     def convert_to_image(self, data):
@@ -184,7 +225,12 @@ class Utilities:
     def print_brake_stats(self):
         self.pub_lcd.publish(self.clear_str)
         self.pub_lcd.publish('0:0:brk ' + str(self.engine.s2s.speed_brake))
-        self.pub_lcd.publish('7:0:acc ' + str(self.engine.s2s.acc_threshold))        
+        self.pub_lcd.publish('7:0:acc ' + str(self.engine.s2s.acc_threshold))
+
+    def print_time_stats(self):
+        self.pub_lcd.publish(self.clear_str)
+        self.pub_lcd.publish('0:0:obs ' + str(self.engine.total_time_thresh))
+        self.pub_lcd.publish('8:0:sign ' + str(self.engine.s2s.total_time_steer_thresh))
 
 def main(args):
     util = Utilities()

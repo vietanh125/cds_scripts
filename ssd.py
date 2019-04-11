@@ -37,7 +37,7 @@ class Detector(object):
         scores = output_dict['detection_scores']
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        if scores[0] > 0.2:
+        if scores[0] > 0.01:
             x1, y1, x2, y2 = int(bnbbox[0][1] * w), int(bnbbox[0][0] * h), int(bnbbox[0][3] * w), int(bnbbox[0][2] * h)
 
             area = image.copy()[y1:y2, x1:x2]
