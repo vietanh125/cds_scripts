@@ -44,7 +44,7 @@ class Processor:
         self.pub_speed = rospy.Publisher('/set_speed_car_api', Float32, queue_size=1)
         self.pub_steerAngle = rospy.Publisher('/set_steer_car_api', Float32, queue_size=1)
         self.lastTime = time.time()
-        self.s2s = SegmentToSteer(square=3, margin=30, roi=0.4)
+        self.s2s = SegmentToSteer(square=3, margin=20, roi=0.4)
         self.left_restriction = 0
         self.right_restriction = 319
         self.obstacle_time = 0.0

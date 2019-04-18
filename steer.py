@@ -24,10 +24,10 @@ class SegmentToSteer():
         self.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
         self.direction_queue = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
         self.roi = 1 - roi
-        self.speed_max = 25
-        self.speed_min = 15
-        self.speed_brake = 15
-        self.acc_threshold = 0.95
+        self.speed_max = 23
+        self.speed_min = 18
+        self.speed_brake = 10
+        self.acc_threshold = 0.9
         # self.steer_pid = PID(Kp=self.p[0], Ki=self.p[1], Kd=self.p[2])
         # self.steer_pid.setWindup(50)
         self.error_proportional_ = 0.0
@@ -40,7 +40,7 @@ class SegmentToSteer():
         self.inc_i = 0.0001
         self.inc_d = 0.01
         self.total_time_steer = 0.0
-        self.total_time_steer_thresh = 14.0
+        self.total_time_steer_thresh = 12.0
 
     def pid(self, cte):
         self.error_integral_ += cte
