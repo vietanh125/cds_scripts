@@ -82,7 +82,7 @@ class SegmentToSteer():
         return 0, has_road
 
 
-    def get_point(self, img, flag, s, roi, left_restriction, right_restriction, has_road, road_property, total_time):
+    def get_point(self, img, flag, s, roi, left_restriction, right_restriction, has_road, road_property):
         IMG_H, IMG_W = img.shape
         i = int(IMG_H * roi)
         border = int((self.square - 1) / 2)
@@ -107,8 +107,8 @@ class SegmentToSteer():
                 break
             i_r -= (border + 1)
 
-        if (turn_left and turn_right and total_time > self.total_time_steer_thresh):
-            flag = 1
+        # if (turn_left and turn_right and total_time > self.total_time_steer_thresh):
+        #     flag = 1
             # flag = self.get_direction()
         if (turn_left and turn_right and flag == 1) or ((turn_right and not turn_left and flag != -1) and not has_road):
             # re phai
@@ -174,7 +174,7 @@ class SegmentToSteer():
         interval = time.time() - last
         last = time.time()
         roi = self.roi
-        self.total_time_steer += interval
+        # self.total_time_steer += interval
         if total_time > 0 and total_time < 3.5:
             if flag != pre_flag and flag != 0:
                 total_time = 0
@@ -193,12 +193,12 @@ class SegmentToSteer():
                 pre_flag = current_flag
         # print 'current flag ', str(current_flag)
         road_property, has_road = self.check_future_road(label, 0.45, 0, IMG_W - 1)
-        y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property, self.total_time_steer)
+        y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
         # y, x = self.get_point_2(label, current_flag)
 
         while label[y][x] == 0 and roi < 0.9:
             roi += 0.05
-            y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property, self.total_time_steer)
+            y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
 
         # x = max(0, min(x + self.check_obstacle(label, x, y, 1), 319))
         # x = get_cte(label, current_flag, self.square, 1)

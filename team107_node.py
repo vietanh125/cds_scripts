@@ -25,18 +25,18 @@ end_depth = time.time()
 start = time.time()
 check = True
 is_running = True
-
+t = 0
 
 # t1 = 0
 class Processor:
-    def __init__(self, model, sign_model):
+    def __init__(self, model):
         self.cv_bridge = CvBridge()
         self.image = None
         self.depth_image = None
         self.frame = 0
         self.flag = 0
         self.model = model
-        self.sign_model = sign_model
+        # self.sign_model = sign_model
         self.ss_sub = rospy.Subscriber('ss_status', Bool, self.run_callback, queue_size=1)
         self.image_sub = rospy.Subscriber('/camera/rgb/image_raw/compressed', CompressedImage, self.callback,
                                           queue_size=1)
@@ -220,6 +220,7 @@ class Processor:
         is_running = data.data
 
     def callback(self, data):
+        global t
         global end
         global is_running
         # global check
@@ -229,13 +230,13 @@ class Processor:
         #   start = time.time()
         #   check = False
         delta = time.time() - end
-        if delta >= 0.03:
+        if delta >= 0.01:
             try:
                 self.image = self.convert_data_to_image(data.data)
-                if self.frame % 6 == 0:
-                    self.flag, s = self.sign_model.predict(self.image)
-                    self.frame = 0
-                    print self.flag
+                # if self.frame % 6 == 0:
+                #     self.flag, s = self.sign_model.predict(self.image)
+                #     self.frame = 0
+                #     print self.flag
                 self.image = cv2.resize(self.image, (320, 160))
                 res, sharp = self.model.predict(self.image)
                 speed, steer, res = self.s2s.get_steer(self.image, res * 255., self.flag, sharp, self.left_restriction,
@@ -257,8 +258,10 @@ class Processor:
                     self.s2s.error_integral_ = 0.0
                     self.s2s.error_derivative_ = 0.0
                     self.publish_data(0, 0)
+                print 1/(time.time() - t)
+                t = time.time()
                 # t1 = time.time()
-                self.frame += 1
+                # self.frame += 1
             except CvBridgeError as e:
                 print(e)
             end = time.time()

@@ -8,16 +8,16 @@ from keras.models import load_model
 class Model():
     def __init__(self, path):
         self.graph = tf.Graph()
-        sess = tf.Session(graph=self.graph, config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.35)))
+        sess = tf.Session(graph=self.graph, config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.15)))
         self.sess = sess
         self.sharp_clf = load_model(path + 'sharp_turn_2.h5')
         self.sharp_clf._make_predict_function()
         with self.graph.as_default():
-            trt_graph = self.read_pb_graph(path + 'TensorRT_5_FP32.pb')
+            trt_graph = self.read_pb_graph(path + 'V2_FP32.pb')
             tf.import_graph_def(trt_graph, name='')
             self.input = self.sess.graph.get_tensor_by_name('input_1:0')
-            self.output = self.sess.graph.get_tensor_by_name('fcn17/truediv:0')
-            self.feature = self.sess.graph.get_tensor_by_name('fcn14/my_trt_op_27:0')
+            self.output = self.sess.graph.get_tensor_by_name('fcn21/truediv:0')
+            self.feature = self.sess.graph.get_tensor_by_name('fcn18/my_trt_op_35:0')
             self.predict(np.zeros((160, 320, 3)))
 
     def read_pb_graph(self, path):

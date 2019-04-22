@@ -13,7 +13,7 @@ from tensorflow.keras.initializers import glorot_uniform
 PRECISION = "FP32"
 
 def load_keras_model(file_name):
-    f = open('model-mobilenet-iter2-pretrain-data-bdd.json', 'r')
+    f = open('model-mobilenetv2.json', 'r')
     with CustomObjectScope({'GlorotUniform': glorot_uniform()}):
         model = model_from_json(f.read())
     model.load_weights(file_name + '.h5')
@@ -29,10 +29,10 @@ def keras_to_TF():
 
 
 def TF_to_TRT():
-    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.3))) as sess:
         saver = tf.train.import_meta_graph("./tensorRT/model.meta")
         saver.restore(sess, "./tensorRT/model")
-        your_outputs = ["fcn17/truediv"]
+        your_outputs = ["fcn21/truediv"]
 
         frozen_graph = tf.graph_util.convert_variables_to_constants(sess, tf.get_default_graph().as_graph_def(),
                                                                     output_node_names=your_outputs)
@@ -43,10 +43,10 @@ def TF_to_TRT():
         input_graph_def=frozen_graph,
         outputs=your_outputs,
         max_batch_size=1,
-        max_workspace_size_bytes=2500000000,
+        max_workspace_size_bytes=930000000,
         precision_mode=PRECISION)
 
-    with gfile.FastGFile("./tensorRT/TensorRT_5_" + PRECISION + ".pb", 'wb') as f:
+    with gfile.FastGFile("./tensorRT/V2_" + PRECISION + ".pb", 'wb') as f:
         f.write(trt_graph.SerializeToString())
     print("TensorRT model is successfully stored!")
     all_nodes = len([1 for n in frozen_graph.node])
@@ -67,12 +67,12 @@ def test(n_time_inference=50):
     input_img = np.zeros((1, 160, 320, 3))
     graph = tf.Graph()
     with graph.as_default():
-        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5))) as sess:
-            trt_graph = read_pb_graph('./tensorRT/TensorRT_5_'+ PRECISION + '.pb')
+        with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.3))) as sess:
+            trt_graph = read_pb_graph('./tensorRT/V2_'+ PRECISION + '.pb')
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
-            output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
-            total_time = 0;
+            output = sess.graph.get_tensor_by_name('fcn21/truediv:0')
+            total_time = 0
             out_pred = sess.run(output, feed_dict={input: input_img})
             for i in range(n_time_inference):
                 t1 = time.time()
@@ -89,8 +89,8 @@ def test(n_time_inference=50):
             frozen_graph = read_pb_graph('./tensorRT/frozen_model.pb')
             tf.import_graph_def(frozen_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
-            output = sess.graph.get_tensor_by_name('fcn17/truediv:0')
-            total_time = 0;
+            output = sess.graph.get_tensor_by_name('fcn21/truediv:0')
+            total_time = 0
             out_pred = sess.run(output, feed_dict={input: input_img})
             for i in range(n_time_inference):
                 t1 = time.time()
@@ -109,6 +109,6 @@ def pipe_line(keras_model_path):
     TF_to_TRT()
     test()
 
-pipe_line("model-mobilenet-5")
+pipe_line("model-mobilenetv2-5")
 
 

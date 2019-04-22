@@ -8,7 +8,7 @@ import time
 from rospkg import RosPack
 from team107_node import Processor
 from std_msgs.msg import String, Float32, Bool
-from ssd import Detector
+# from ssd import Detector
 from rospy import ROSException
 from model import Model
 
@@ -33,7 +33,7 @@ class Utilities:
         self.bt4_status = False
         self.ss_status = False
         self.model = Model(self.path)
-        self.sign_model = Detector(self.path)
+        # self.sign_model = Detector(self.path)
         # ros subscribers and publishers
         # hal
         self.sub_bt1 = rospy.Subscriber('/bt1_status', Bool, self.bt1_callback, queue_size=1)
@@ -91,7 +91,7 @@ class Utilities:
     def setup_engine(self):
         self.is_self_driving = True
         self.is_recording = False
-        self.engine = Processor(model=self.model, sign_model=self.sign_model)
+        self.engine = Processor(model=self.model)
         self.print_car_stats()
         time.sleep(1)
 
