@@ -20,14 +20,12 @@ from depth_process import *
 
 rospack = rospkg.RosPack()
 path = rospack.get_path('team107') + '/scripts/'
-end = time.time()
 end_depth = time.time()
 start = time.time()
 check = True
 is_running = True
-t = 0
 skip = 200
-# t1 = 0
+t1 = 0
 class Processor:
     def __init__(self, model):
         self.cv_bridge = CvBridge()
@@ -224,8 +222,6 @@ class Processor:
         if skip > 0:
             skip -= 1
             return
-        global t
-        global end
         global is_running
         # global check
         # global start
@@ -233,50 +229,35 @@ class Processor:
         # if check == True:
         #   start = time.time()
         #   check = False
-        delta = time.time() - end
-        if delta >= 0:
-            try:
-                self.image = self.convert_data_to_image(data.data)
-                # if self.frame % 6 == 0:
-                #     self.flag, s = self.sign_model.predict(self.image)
-                #     self.frame = 0
-                #     print self.flag
-                self.image = cv2.resize(self.image, (320, 160))
-                res, sharp = self.model.predict(self.image)
-                speed, steer = self.s2s.get_steer(res, self.flag, sharp, self.left_restriction, self.right_restriction)
-                # cv2.imshow('black and white', self.image)
-                # k = cv2.waitKey(1)
-                # if k == 81:
-                #     self.flag = -1
-                #     print 'left'
-                # elif k == 82:
-                #     self.flag = 0
-                #     print 'straight forward'
-                # elif k == 83:
-                #     self.flag = 1
-                #     print 'right'
-                # cv2.imshow('road', self.image)
-                # cv2.waitKey(1)
-                # if time.time() - start <= 10:
-                #   speed = 100
-                # print (1/(time.time()-t1))
-                if is_running:
-                    self.publish_data(speed, -steer)
-                else:
-                    self.s2s.total_time_steer = 0.0
-                    self.total_time = 0.0
-                    self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
-                    self.s2s.error_proportional_ = 0.0
-                    self.s2s.error_integral_ = 0.0
-                    self.s2s.error_derivative_ = 0.0
-                    self.publish_data(0, 0)
-                # print 1/(time.time() - t)
-                t = time.time()
-                # t1 = time.time()
-                # self.frame += 1
-            except CvBridgeError as e:
-                print(e)
-            end = time.time()
+        try:
+            self.image = self.convert_data_to_image(data.data)
+            # if self.frame % 6 == 0:
+            #     self.flag, s = self.sign_model.predict(self.image)
+            #     self.frame = 0
+            #     print self.flag
+            self.image = cv2.resize(self.image, (320, 160))
+            res, sharp = self.model.predict(self.image)
+            speed, steer = self.s2s.get_steer(res, self.flag, sharp, self.left_restriction, self.right_restriction)
+            # cv2.imshow('black and white', self.image)
+            # cv2.waitKey(1)
+            # cv2.imshow('road', self.image)
+            # cv2.waitKey(1)
+            # print (1/(time.time()-t1))
+            if is_running:
+                self.publish_data(speed, -steer)
+            else:
+                self.s2s.total_time_steer = 0.0
+                self.total_time = 0.0
+                self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
+                self.s2s.error_proportional_ = 0.0
+                self.s2s.error_integral_ = 0.0
+                self.s2s.error_derivative_ = 0.0
+                self.publish_data(0, 0)
+            # print 1/(time.time() - t)
+            # t1 = time.time()
+            # self.frame += 1
+        except CvBridgeError as e:
+            print(e)
 
     def convert_data_to_image(self, data):
         arr = np.fromstring(data, np.uint8)
