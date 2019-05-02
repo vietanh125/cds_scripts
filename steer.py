@@ -2,6 +2,8 @@ import numpy as np
 import time
 import math
 from collections import deque
+from p2c import p2c_main
+# from python_to_c import python_to_c
 
 total_time = 0
 last = time.time()
@@ -139,10 +141,11 @@ class SegmentToSteer():
         # global total_time
         # global last
         IMG_H, IMG_W = label.shape
-        label = label.tolist()
+        # label = label.tolist()
+        label = label.astype(np.int32)
         # interval = time.time() - last
         # last = time.time()
-        roi = self.roi
+        # roi = self.roi
         current_flag = flag
         # if total_time > 0 and total_time < 3.5:
         #     if flag != pre_flag and flag != 0:
@@ -158,19 +161,21 @@ class SegmentToSteer():
         #         total_time += interval
         #     else:
         #         pre_flag = current_flag
-        road_property, has_road = self.check_future_road(label, 0.4, 0, IMG_W - 1)
-        y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
+        # old steer code
+        # road_property, has_road = self.check_future_road(label, 0.4, 0, IMG_W - 1)
+        # y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
+        # while label[y][x] == 0 and roi < 0.9:
+        #     roi += 0.05
+        #     y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
 
-        while label[y][x] == 0 and roi < 0.9:
-            roi += 0.05
-            y, x = self.get_point(label, current_flag, s, roi, left_restriction, right_restriction, has_road, road_property)
-
+        # new steer code
+        y, x = p2c_main.get_center_point(label, self.roi, 0.4, current_flag, left_restriction, right_restriction)
         # steer = np.arctan((x - IMG_W / 2 + 1) / (IMG_H - float(y))) * 57.32
         steer = -self.pid(x - IMG_W / 2 + 1)
         steer = np.sign(steer) * min(60, abs(steer))
         if s > self.acc_threshold:
-            # print "accuracy ", str(s)
-            self.speed_memory.append(min(self.speed_brake / (s ** 5), self.speed_max))
+            print "accuracy ", str(s)
+            # self.speed_memory.append(min(self.speed_brake / (s ** 5), self.speed_max))
         elif left_restriction >= 0.5 * IMG_W or right_restriction <= 0.5 * IMG_W:
             self.speed_memory.append(self.speed_min)
         else:

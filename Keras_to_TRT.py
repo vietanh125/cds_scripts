@@ -11,12 +11,15 @@ from tensorflow.keras.utils import CustomObjectScope
 from tensorflow.keras.initializers import glorot_uniform
 
 PRECISION = "FP32"
+NAME = "V2_Tree.pb"
+KERAS = "model-mobilenetv2-tree.h5"
+
 
 def load_keras_model(file_name):
     f = open('model-mobilenetv2.json', 'r')
     with CustomObjectScope({'GlorotUniform': glorot_uniform()}):
         model = model_from_json(f.read())
-    model.load_weights(file_name + '.h5')
+    model.load_weights(file_name)
     print "Model loaded"
     return model
 
@@ -46,7 +49,7 @@ def TF_to_TRT():
         max_workspace_size_bytes=930000000,
         precision_mode=PRECISION)
 
-    with gfile.FastGFile("./tensorRT/V2_" + PRECISION + ".pb", 'wb') as f:
+    with gfile.FastGFile("./tensorRT/" + NAME, 'wb') as f:
         f.write(trt_graph.SerializeToString())
     print("TensorRT model is successfully stored!")
     all_nodes = len([1 for n in frozen_graph.node])
@@ -68,7 +71,7 @@ def test(n_time_inference=50):
     graph = tf.Graph()
     with graph.as_default():
         with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.3))) as sess:
-            trt_graph = read_pb_graph('./tensorRT/V2_'+ PRECISION + '.pb')
+            trt_graph = read_pb_graph('./tensorRT/' + NAME)
             tf.import_graph_def(trt_graph, name='')
             input = sess.graph.get_tensor_by_name('input_1:0')
             output = sess.graph.get_tensor_by_name('fcn21/truediv:0')
@@ -109,6 +112,6 @@ def pipe_line(keras_model_path):
     TF_to_TRT()
     test()
 
-pipe_line("model-mobilenetv2-5")
+pipe_line(KERAS)
 
 
