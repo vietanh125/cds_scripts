@@ -17,6 +17,7 @@ from steer import SegmentToSteer
 from cv_bridge import CvBridge, CvBridgeError
 from collections import deque
 from depth_process import *
+from floodfill import fill
 
 rospack = rospkg.RosPack()
 path = rospack.get_path('team107') + '/scripts/'
@@ -24,8 +25,9 @@ end_depth = time.time()
 start = time.time()
 check = True
 is_running = True
-t1 = 0
+# t1 = 0
 skip = 200
+
 
 class Processor:
     def __init__(self, model):
@@ -40,7 +42,7 @@ class Processor:
         self.image_sub = rospy.Subscriber('/camera/rgb/image_raw/compressed', CompressedImage, self.callback,
                                           queue_size=1)
         self.imu_sub = rospy.Subscriber('/mpu_9250/imu', Imu, self.imu_callback, queue_size=1)
-        # self.depth_sub = rospy.Subscriber('/camera/depth/image_raw', Image, self.depth_callback, queue_size=1)
+        self.depth_sub = rospy.Subscriber('/camera/depth/image_raw', Image, self.depth_callback, queue_size=1)
         self.pub_speed = rospy.Publisher('/set_speed_car_api', Float32, queue_size=1)
         self.pub_steerAngle = rospy.Publisher('/set_steer_car_api', Float32, queue_size=1)
         self.lastTime = time.time()
@@ -51,49 +53,31 @@ class Processor:
         # self.total_time = 0.0
         self.total_time_thresh = 8.0
 
-
     def depth_callback(self, data):
         global is_running
         global skip
         # if delta >= 0.03 and self.total_time < self.total_time_thresh:
-        if skip > 0:
+        if skip > 0 or not self.s2s.depth_time:
             return
         try:
             # convert_data(data.data)
             img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
-            img = cv2.resize(img, (320, 160))
-            # self.left_restriction, self.right_restriction = self.check_obstacle_new(img, delta)
-            self.depth_preprocess(img, 16)
-            # img *= 10
-            # self.depth_preprocess_hieu(img)
-            # cv2.imshow('depth_left', img[90:159,  :int(0.25*IMG_W)])
-            # cv2.imshow('depth', img)
-            # self.total_time += delta
+            ratio = 8
+            cut = 50
+            self.depth_preprocess(img, ratio, cut)
         except CvBridgeError, e:
             print e
 
-    
-    def depth_preprocess(self, frame, ratio):
-        # time1 = time.time()
-        # frame = np.float32(frame)
-        # frame *= 255.0/65535
-        # frame = np.uint8(frame)
-        # frame = preprocess_img(frame, 32)
-        # frame = remove_road(frame, road_distance=600, padding=150)
-        # frame = remove_far(frame, far_distance=1200)
-        # frame = remove_noise(frame, k=3)
-        # rects = find_obstacles(frame)
-        frame = preprocess_img(frame, ratio)
-        frame = cv2.GaussianBlur(frame, (5, 5), 0)
-        # print frame
-        # frame = cv2.medianBlur(frame, 5)
-        frame = find_object(frame, 70, 0)
+    def depth_preprocess(self, frame, ratio, cut):
+        h, w = frame.shape
+        frame = preprocess_img(frame, ratio, cut)
         frame = remove_noise(frame, k=3)
-        cv2.imshow("result", frame*255.)
-        cv2.waitKey(1)
-        rects = find_obstacles(frame, self.pred_image, 3, ratio)
-        # print rects
-        self.left_restriction, self.right_restriction = get_restriction(rects)
+        # print(frame)
+        frame = remove_ground(frame, padding=1, distance=2)
+        # print(frame)
+        if self.pred_image is not None:
+            rects = find_obstacle(np.array(frame, np.uint8), self.pred_image, k=3, min_area=0)
+            self.left_restriction, self.right_restriction = get_restriction(rects)
         # frame = np.float32(frame) * 255.
         # if r is not None:
         #     x, y, w, h = r
@@ -102,7 +86,6 @@ class Processor:
         #
         # cv2.imshow('thresh', self.image)
         # cv2.waitKey(1)
-
 
     def depth_preprocess_hieu(self, img):
         lower_y = int(4 * 160 / 16)
@@ -116,7 +99,6 @@ class Processor:
         ret, thresh1 = cv2.threshold(img, 3, 255, cv2.THRESH_BINARY)
         self.check_obstacle_2(thresh1, 0.5)
 
-    
     def check_obstacle_2(self, img, threshold):
         IMG_H, IMG_W = img.shape
         self.left_restriction = 0
@@ -174,7 +156,6 @@ class Processor:
             self.right_restriction = int((1 - ratio) * IMG_W)
             self.left_restriction = 0
 
-    
     def parking(self, frame):
         H, W = 160, 320
         frame = frame[int(0.4 * H):-1, int(0.5 * W): int(0.6 * W)]
@@ -188,18 +169,16 @@ class Processor:
         i = 0
         h, w = sobely.shape
         while (i < h):
-            if sobely[i][w/2] == 255:
+            if sobely[i][w / 2] == 255:
                 break
             i += 1
         d = max(0, (h - i) - 50)
-        if i >= h-1:
+        if i >= h - 1:
             return -1
-        return d/3
+        return d / 3
 
-    
     def imu_callback(self, imu):
         self.s2s.append_tilt(imu.linear_acceleration.x, imu.linear_acceleration.y, imu.linear_acceleration.z)
-
 
     def run_callback(self, data):
         global is_running
@@ -213,7 +192,7 @@ class Processor:
         global is_running
         # global check
         # global start
-        global t1
+        # global t1
         # if check == True:
         #   start = time.time()
         #   check = False
@@ -225,35 +204,39 @@ class Processor:
             #     print self.flag
             self.image = cv2.resize(self.image, (320, 160))
             res, sharp = self.model.predict(self.image)
-            self.pred_image = res*1.
+            # res = fill(np.uint8(res))
+            self.pred_image = res * 1.
             # print self.left_restriction, self.right_restriction
             speed, steer = self.s2s.get_steer(res, self.flag, sharp, self.left_restriction, self.right_restriction)
 
-            # parking_speed = self.parking(self.image)
-            # if parking_speed > -1:
-            #     self.s2s.speed_memory.pop()
-            #     self.s2s.speed_memory.append(parking_speed)
-            #     speed = self.s2s.mean_speed_queue()
-            #     speed -= 1
+            if self.s2s.park_time:
+                parking_speed = self.parking(self.image)
+                if parking_speed > -1:
+                    self.s2s.speed_memory.pop()
+                    self.s2s.speed_memory.append(parking_speed)
+                    speed = self.s2s.mean_speed_queue()
+                    speed -= 1
             # cv2.imshow('black and white', self.image)
             # cv2.waitKey(1)
-            cv2.imshow('road', res*255.)
+            cv2.imshow('road', res * 255.)
             cv2.waitKey(1)
-            print (1/(time.time()-t1))
+            # print (1 / (time.time() - t1))
             if is_running:
                 self.publish_data(speed, -steer)
             else:
                 # self.s2s.total_width = self.s2s.roi * 160
-                # self.s2s.counter = 1
-                self.s2s.total_time_steer = 0.0
+                # self.s2s.total_time_steer = 0.0
                 self.total_time = 0.0
+                # self.s2s.counter = 0
+                self.s2s.park_time = False
+                # self.s2s.total_time_steer = 0.0
                 self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
                 self.s2s.error_proportional_ = 0.0
                 self.s2s.error_integral_ = 0.0
                 self.s2s.error_derivative_ = 0.0
                 self.publish_data(0, 0)
             # print 1/(time.time() - t1)
-            t1 = time.time()
+            # t1 = time.time()
             # self.frame += 1
         except CvBridgeError as e:
             print(e)

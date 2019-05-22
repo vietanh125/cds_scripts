@@ -20,7 +20,7 @@ class Utilities:
         # params
         self.count = 1
         self.clear_str = '0:0:                                                                                '
-        #flags
+        # flags
         self.is_configuring = False
         self.is_self_driving = False
         self.is_time_configuring = False
@@ -81,7 +81,7 @@ class Utilities:
 
     # button interactions
     def check_btns(self):
-        if  not self.is_self_driving:
+        if not self.is_self_driving:
             try:
                 if self.first_load:
                     self.pub_lcd.publish(self.clear_str)
@@ -100,6 +100,7 @@ class Utilities:
         self.is_self_driving = True
         self.is_recording = False
         self.engine = Processor(model=self.model)
+        self.current_path = self.engine.s2s.paths
         self.print_car_stats()
         time.sleep(1)
 
@@ -140,7 +141,7 @@ class Utilities:
         self.first_time = True
         time.sleep(1)
 
-    #change brake config
+    # change brake config
     def setup_configuration(self):
         self.is_configuring = True
         self.print_brake_stats()
@@ -180,7 +181,7 @@ class Utilities:
         self.print_brake_stats()
         time.sleep(0.5)
 
-    #change path config
+    # change path config
     def setup_path_configuration(self):
         self.path_config = True
         self.print_current_path()
@@ -205,7 +206,7 @@ class Utilities:
             elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
                 self.exit_path_configuration()
 
-    def change_timer(amount):
+    def change_timer(self, amount):
         self.engine.s2s.total_time_steer_thresh += amount
         self.print_current_path()
         time.sleep(0.5)
@@ -215,7 +216,7 @@ class Utilities:
         self.print_brake_stats()
         time.sleep(1)
 
-    #create new path
+    # create new path
     def setup_new_path(self):
         self.new_path = []
         self.print_new_path()
@@ -233,7 +234,7 @@ class Utilities:
             self.exit_create_path(finish=True)
         elif not self.bt1_status and not self.bt2_status and self.bt3_status and self.bt4_status:
             self.exit_create_path(finish=False)
-        
+
     def change_checkpoint(self):
         selected_cp = (self.selected_cp + 2) % 3 - 1
         self.selected_cp = selected_cp
@@ -252,15 +253,15 @@ class Utilities:
         self.print_new_path()
         time.sleep(0.5)
 
-    def exit_create_path(self, finish = True):
+    def exit_create_path(self, finish=True):
         if finish:
             self.current_path = self.new_path
+            self.engine.s2s.paths = self.current_path
         self.create_path = False
         self.print_current_path()
         time.sleep(1)
 
-
-    #change flag config
+    # change flag config
     def setup_flag_configuration(self):
         self.flag_config = True
         self.print_flag()
@@ -302,7 +303,7 @@ class Utilities:
         self.print_flag()
         time.sleep(0.5)
 
-    #print and other functions
+    # print and other functions
 
     def convert_to_image(self, data):
         arr = np.fromstring(data, np.uint8)
@@ -334,7 +335,7 @@ class Utilities:
                 path_str += str(p)
             self.pub_lcd.publish("0:1:" + path_str)
         self.pub_lcd.publish("0:2:timer " + str(self.engine.s2s.total_time_steer_thresh))
-        
+
     def print_new_path(self):
         self.pub_lcd.publish(self.clear_str)
         self.pub_lcd.publish('0:0:Please select path:')
@@ -350,6 +351,7 @@ class Utilities:
         self.pub_lcd.publish(self.clear_str)
         self.pub_lcd.publish('0:0:flag ' + str(self.engine.flag))
         self.pub_lcd.publish('7:0:froi ' + str(self.engine.s2s.future_roi))
+
 
 def main(args):
     util = Utilities()
