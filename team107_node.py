@@ -225,9 +225,9 @@ class Processor:
                 self.publish_data(speed, -steer)
             else:
                 # self.s2s.total_width = self.s2s.roi * 160
-                # self.s2s.total_time_steer = 0.0
+                self.s2s.total_time_steer = 0.0
                 self.total_time = 0.0
-                # self.s2s.counter = 0
+                self.s2s.counter = 0
                 self.s2s.park_time = False
                 # self.s2s.total_time_steer = 0.0
                 self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
