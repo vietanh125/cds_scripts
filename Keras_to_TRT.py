@@ -11,8 +11,8 @@ from tensorflow.keras.utils import CustomObjectScope
 from tensorflow.keras.initializers import glorot_uniform
 
 PRECISION = "FP32"
-NAME = "V2_Tree.pb"
-KERAS = "model-mobilenetv2-tree.h5"
+NAME = "V2_Bridge.pb"
+KERAS = "model-mobilenetv2-bridge.h5"
 
 
 def load_keras_model(file_name):

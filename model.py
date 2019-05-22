@@ -13,7 +13,7 @@ class Model():
         self.sharp_clf = load_model(path + 'sharp_turn.h5')
         self.sharp_clf._make_predict_function()
         with self.graph.as_default():
-            trt_graph = self.read_pb_graph(path + 'V2_Tree.pb')
+            trt_graph = self.read_pb_graph(path + 'V2_Bridge.pb')
             tf.import_graph_def(trt_graph, name='')
             self.input = self.sess.graph.get_tensor_by_name('input_1:0')
             self.output = self.sess.graph.get_tensor_by_name('fcn21/truediv:0')
