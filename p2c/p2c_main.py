@@ -12,8 +12,8 @@ rows = 160
 cols = 320
 array_2d_int = npct.ndpointer(dtype=np.int32, ndim=2, flags='CONTIGUOUS')
 libc.get_point.argtypes = [array_2d_int, c_float, POINTER(c_int), POINTER(c_int), c_int, c_int, c_int, c_bool, c_int]
-libc.check_future_road.argtypes = [array_2d_int, c_float, POINTER(c_bool), POINTER(c_int), c_int, c_int]
-libc.get_center_point.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_bool), c_int, c_int]
+libc.check_future_road.argtypes = [array_2d_int, c_float, POINTER(c_bool), POINTER(c_int), c_int]
+libc.get_center_point.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_bool), c_int, c_int, c_int]
 libc.get_center_point_left_and_right.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), c_int, c_int, c_float]
 libc.set_time_threshold.argtypes = [c_float]
 
@@ -26,17 +26,17 @@ def get_point(img, roi, flag, left_restriction, right_restriction, has_road, roa
     libc.get_point(img, roi, p_x, p_y, flag, left_restriction, right_restriction, has_road, road_property)
     return p_y.contents.value, p_x.contents.value
 
-def check_future_road(img, roi, left_restriction, right_restriction):
+def check_future_road(img, roi, margin):
     p_has_road = pointer(c_bool())
     p_road_property = pointer(c_int(0))
-    libc.check_future_road(img, roi, p_has_road, p_road_property, left_restriction, right_restriction)
+    libc.check_future_road(img, roi, p_has_road, p_road_property, margin)
     return p_road_property.contents.value, p_has_road.contents.value
 
-def get_center_point(img, roi, future_roi, flag, left_restriction, right_restriction):
+def get_center_point(img, roi, future_roi, flag, left_restriction, right_restriction, mode):
     p_x = pointer(c_int())
     p_y = pointer(c_int())
     p_is_crossroad = pointer(c_bool())
-    libc.get_center_point(img, roi, future_roi, flag, p_x, p_y, p_is_crossroad, left_restriction, right_restriction)
+    libc.get_center_point(img, roi, future_roi, flag, p_x, p_y, p_is_crossroad, left_restriction, right_restriction, mode)
     return p_y.contents.value, p_x.contents.value, p_is_crossroad.contents.value
 
 def get_center_point_left_and_right(img, roi, future_roi, flag, left_restriction, right_restriction, total_time):
@@ -44,38 +44,3 @@ def get_center_point_left_and_right(img, roi, future_roi, flag, left_restriction
     p_y = pointer(c_int())
     libc.get_center_point_left_and_right(img, roi, future_roi, flag, p_x, p_y, left_restriction, right_restriction, total_time)
     return p_y.contents.value, p_x.contents.value
-
-# arr = np.zeros((rows, cols))
-# base_roi = 0.6
-# loop = 1000
-# last_time = time.time()
-# for index in range(loop):
-#     roi = base_roi
-#     list_arr = arr.tolist()
-#     has_road, road_property = gp.check_future_road(list_arr, 0.4, 0, cols - 1)
-#     y, x = gp.get_point(list_arr, 0, 0, roi, 0, cols - 1, has_road, road_property)
-#     while list_arr[y][x] == 0 and roi < 0.9:
-#         roi += 0.05
-#         y_x = gp.get_point(list_arr, 0, 0, roi, 0, cols - 1, has_road, road_property)
-# total_time1 = time.time() - last_time
-# last_time = time.time()
-# for index in range(loop):
-#     roi = base_roi
-#     arr_c = arr.astype(np.int32)
-#     road_property, has_road = check_future_road(arr_c, 0.4, 0, cols - 1)
-#     y, x = get_point(arr_c, roi, 0, 0, cols - 1, has_road, road_property)
-#     while arr_c[y][x] == 0 and roi < 0.9:
-#         roi += 0.05
-#         y, x = get_point(arr_c, roi, 0, 0, cols - 1, has_road, road_property)
-#     # y, x = get_center_point(arr_c, 0.6, 0.4, 0, 0, cols - 1)
-# total_time2 = time.time() - last_time
-
-# last_time = time.time()
-# for index in range(loop):
-#     arr_c = arr.astype(np.int32)
-#     # road_property, has_road = check_future_road(arr_c, 0.4, 0, cols - 1)
-#     # y, x = get_point(arr_c, 0.6, 0, 0, cols - 1, has_road, road_property)
-#     y, x = get_center_point(arr_c, base_roi, 0.4, 0, 0, cols - 1)
-# total_time3 = time.time() - last_time
-
-# print total_time1 / total_time3

@@ -14,6 +14,8 @@ def fill(img):
         return img
     i = np.argmax(run_ends-run_starts, axis=0)
     seed = int((run_ends[i] + run_starts[i])/2)
+    if img[IMG_H - 2][seed] == 0:
+        print "Wrong flood fill!!!"
     # seed = 160
     cv2.floodFill(img, mask, (seed, IMG_H-2), 1)
     # img_inv = cv2.bitwise_not(img)

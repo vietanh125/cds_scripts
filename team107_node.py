@@ -56,7 +56,7 @@ class Processor:
     def depth_callback(self, data):
         global is_running
         global skip
-        # if delta >= 0.03 and self.total_time < self.total_time_thresh:
+        # if delta >= 0.03 and slf.total_time < self.total_time_thresh:
         if skip > 0 or not self.s2s.depth_time:
             return
         try:
@@ -204,7 +204,7 @@ class Processor:
             #     print self.flag
             self.image = cv2.resize(self.image, (320, 160))
             res, sharp = self.model.predict(self.image)
-            # res = fill(np.uint8(res))
+            res = fill(np.uint8(res))
             self.pred_image = res * 1.
             # print self.left_restriction, self.right_restriction
             speed, steer = self.s2s.get_steer(res, self.flag, sharp, self.left_restriction, self.right_restriction)
@@ -227,8 +227,9 @@ class Processor:
                 # self.s2s.total_width = self.s2s.roi * 160
                 self.s2s.total_time_steer = 0.0
                 self.total_time = 0.0
+                self.s2s.mode = -1
                 self.s2s.counter = 0
-                self.s2s.park_time = False
+                self.s2s.reset_actions()
                 # self.s2s.total_time_steer = 0.0
                 self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
                 self.s2s.error_proportional_ = 0.0

@@ -14,7 +14,7 @@ class SegmentToSteer():
     def __init__(self, square=7, margin=30, roi=1 / 3):
         self.square = square
         self.margin = margin
-        self.speed_memory = deque(iterable=np.zeros(10, dtype=np.uint8), maxlen=10)
+        self.speed_memory = deque(iterable=np.zeros(15, dtype=np.uint8), maxlen=15)
         self.direction_queue = deque(iterable=np.zeros(3, dtype=np.uint8), maxlen=3)
         self.tilt_queue = deque(iterable=np.ones(15, dtype=np.uint8), maxlen=15)
 
@@ -23,15 +23,17 @@ class SegmentToSteer():
         self.speed_max = 23
         self.speed_min = 18
         self.speed_brake = 10
+        self.mode = -1
         self.acc_threshold = 0.9
         self.is_on_bridge = False
-        self.paths = []
+        self.paths = [-1, 0, -1, 1, 1, -1, 1, -1, -1, 1]
+        self.actions = [[], [], ["left_stick"], ["left_stick"], ["left_stick"], [], [], ["left_stick"], [], ["parking_on"]]
+        self.side = 1
         self.counter = 0
         self.consecutive_count = 0
         self.park_time = False
         self.bridge_time = False
         self.depth_time = False
-        self.last_road_status = False
 
         self.error_proportional_ = 0.0
         self.error_integral_ = 0.0
@@ -43,7 +45,7 @@ class SegmentToSteer():
         self.inc_i = 0.0001
         self.inc_d = 0.01
         self.total_time_steer = 0.0
-        self.total_time_steer_thresh = 2.5
+        self.total_time_steer_thresh = 0.7
         self.total_width = self.roi * 160
         self.last_time = time.time()
 
@@ -51,8 +53,7 @@ class SegmentToSteer():
         self.error_integral_ += cte
         self.error_derivative_ = cte - self.error_proportional_
         self.error_proportional_ = cte
-        return -(
-                    self.k_p * self.error_proportional_ + self.k_i * self.error_integral_ + self.k_d * self.error_derivative_)
+        return -(self.k_p * self.error_proportional_ + self.k_i * self.error_integral_ + self.k_d * self.error_derivative_)
 
     def check_future_road(self, img, roi, left_restriction, right_restriction):
         IMG_H, IMG_W = 160, 320
@@ -90,6 +91,22 @@ class SegmentToSteer():
         elif turn_right and not turn_left:
             return 1, has_road
         return 0, has_road
+
+    def reset_actions(self):
+        self.park_time = False
+        self.bridge_time = False
+        self.depth_time = False
+
+    def set_actions(self, actions):
+        self.bridge_time = "bridge_on" in actions
+        self.depth_time = "obstacle_on" in actions
+        self.park_time = "parking_on" in actions
+        if "left_stick" in actions:
+            self.mode = -1
+        elif "right_stick" in actions:
+            self.mode = 1
+        else:
+            self.mode = 0
 
     def get_point_left_and_right(self, img, flag, s, roi, left_restriction, right_restriction):
         IMG_H, IMG_W = 160, 320
@@ -240,8 +257,14 @@ class SegmentToSteer():
             if self.counter <= len(self.paths):
                 flag = self.paths[self.counter - 1]
 
-        if self.counter >= len(self.paths):
-            self.park_time = True
+        flag *= self.side
+
+        # if self.counter == 1:
+        #     self.depth_time = True
+        #     self.park_time = False
+        # elif self.counter >= len(self.paths):
+        #     self.park_time = True
+        #     self.depth_time = False
 
         if self.bridge_time:
             tilt_flag = self.get_tilt_direction()
@@ -268,7 +291,7 @@ class SegmentToSteer():
             y, x = p2c_main.get_center_point_left_and_right(label, roi, froi, flag, left_restriction,
                                                             right_restriction, 0.0)
         else:
-            y, x, detect_crossroad = p2c_main.get_center_point(label, roi, froi, flag, left_restriction, right_restriction)
+            y, x, detect_crossroad = p2c_main.get_center_point(label, roi, froi, flag, left_restriction, right_restriction, self.mode)
 
         if not on_crossroad and detect_crossroad:
             self.consecutive_count += 1
@@ -276,6 +299,8 @@ class SegmentToSteer():
                 self.counter += 1
                 self.consecutive_count = 0
                 self.total_time_steer += interval
+                self.reset_actions()
+                self.set_actions(self.actions[self.counter - 1])
                 print self.counter
         elif not on_crossroad:
             self.consecutive_count = 0
@@ -283,8 +308,6 @@ class SegmentToSteer():
 
         steer = -self.pid(x - IMG_W / 2 + 1)
         steer = np.sign(steer) * min(60, abs(steer))
-
-        self.last_road_status = on_crossroad
         # if tilt_flag == -1:
         # self.speed_memory.append(15)
         # elif tilt_flag == 1:
