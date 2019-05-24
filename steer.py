@@ -26,8 +26,10 @@ class SegmentToSteer():
         self.mode = 0
         self.acc_threshold = 0.9
         self.is_on_bridge = False
-        self.paths = [1, 1, 1, 1]
-        self.actions = [["obstacle_on", "right_stick"], [], [], ["parking_on", "right_stick"]]
+        self.paths = [1, 1, 1, -1, 1]
+        self.actions = [["obstacle_on", "circle"], ["right_stick"], [], ["right_stick"], ["parking_on", "right_stick"]]
+        # self.paths = [1]
+        # self.actions = [["parking_on", "right_stick"]]
         self.side = 1
         self.counter = 0
         self.consecutive_count = 0
@@ -103,6 +105,10 @@ class SegmentToSteer():
         self.bridge_time = "bridge_on" in actions
         self.depth_time = "obstacle_on" in actions
         self.park_time = "parking_on" in actions
+        if "circle" in actions:
+            self.future_roi = 0.55
+        else:
+            self.future_roi = 0.35
         if "left_stick" in actions:
             self.mode = -1
         elif "right_stick" in actions:
@@ -256,7 +262,7 @@ class SegmentToSteer():
 
         flag = 0
         if self.on_crossroad:
-            if self.not_crossroad_counter >= 10:
+            if self.not_crossroad_counter >= 20:
                 self.on_crossroad = False
                 self.not_crossroad_counter = 0
             # if self.not_crossroad_counter <= 5:

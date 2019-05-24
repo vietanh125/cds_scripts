@@ -1,0 +1,8 @@
+13 3 left_stick
+13 4 right_stick
+9 8 right_stick
+9 7 bridge_on right_stick
+7 9 bridge_on
+2 1 obstacle_on
+1 2 obstacle_on
+9 1 obstacle_on

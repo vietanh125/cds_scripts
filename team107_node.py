@@ -18,6 +18,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from collections import deque
 from depth_process import *
 from floodfill import fill
+from find_path import get_command
 
 rospack = rospkg.RosPack()
 path = rospack.get_path('team107') + '/scripts/'
@@ -52,7 +53,7 @@ class Processor:
         self.right_restriction = 319
         self.obstacle_time = 0.0
         # self.total_time = 0.0
-        self.total_time_thresh = 8.0
+        self.total_time_thresh = 8.0	
 
     def depth_callback(self, data):
         global is_running
@@ -167,7 +168,7 @@ class Processor:
         frame = cv2.GaussianBlur(frame, (5, 5), 0)
         _, frame = cv2.threshold(frame, 240, 255, cv2.THRESH_BINARY)
         # sobely = cv2.Sobel(frame, cv2.CV_8U, 0, 1, ksize=3)
-        sobely = cv2.erode(frame, (2, 50))
+        sobely = cv2.erode(frame, (3, 40))
         # cv2.imshow('line', sobely)
         # cv2.waitKey(1)
         i = 0
@@ -176,12 +177,15 @@ class Processor:
             if sobely[i][w / 2] == 255:
                 break
             i += 1
-        d = max(0, (h - i) - 60)
+        d = max(0, (h - i) - 50)
         if i >= h - 1:
             return -1
         return d / 3
 
     def imu_callback(self, imu):
+        global skip
+        if skip > 0:
+            return
         self.s2s.append_tilt(imu.linear_acceleration.x, imu.linear_acceleration.y, imu.linear_acceleration.z)
 
     def run_callback(self, data):

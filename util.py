@@ -11,6 +11,7 @@ from std_msgs.msg import String, Float32, Bool
 # from ssd import Detector
 from rospy import ROSException
 from model import Model
+from find_path import get_command
 
 rospack = RosPack()
 
@@ -39,6 +40,7 @@ class Utilities:
         self.ss_status = False
         self.model = Model(self.path)
         self.current_path = []
+        self.actions = []
         self.new_path = []
         self.selected_cp = 0
         # self.sign_model = Detector(self.path)
@@ -49,6 +51,7 @@ class Utilities:
         self.sub_bt3 = rospy.Subscriber('/bt3_status', Bool, self.bt3_callback, queue_size=1)
         self.sub_bt4 = rospy.Subscriber('/bt4_status', Bool, self.bt4_callback, queue_size=1)
         self.sub_ss = rospy.Subscriber('/ss_status', Bool, self.ss_callback, queue_size=1)
+        # self.sub_path = rospy.Subscriber('/route', String, self.path_callback2, queue_size=1)
         self.pub_lcd = rospy.Publisher('/lcd_print', String, queue_size='5')
         # car controller
         self.sub_img = None
@@ -57,6 +60,9 @@ class Utilities:
         # finish
 
     # setup callbacks
+	# def path_callback2(self, data):
+	# 	self.current_path, self.actions = get_command(data.data, 1)
+		
     def bt1_callback(self, data):
         self.bt1_status = data.data
 
