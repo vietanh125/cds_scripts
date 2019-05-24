@@ -23,11 +23,11 @@ class SegmentToSteer():
         self.speed_max = 23
         self.speed_min = 18
         self.speed_brake = 10
-        self.mode = -1
+        self.mode = 0
         self.acc_threshold = 0.9
         self.is_on_bridge = False
-        self.paths = [-1, 0, -1, 1, 1, 1, 0]
-        self.actions = [[], [], ["left_stick"], ["left_stick"], ["left_stick"], ["left_stick"], ["parking_on"]]
+        self.paths = [1, 1, 1, 1]
+        self.actions = [["obstacle_on"], [], ["right_stick"], ["parking_on", "right_stick"]]
         self.side = 1
         self.counter = 0
         self.consecutive_count = 0
@@ -109,6 +109,7 @@ class SegmentToSteer():
             self.mode = 1
         else:
             self.mode = 0
+        print 'bridge: ', self.bridge_time, ';depth: ', self.depth_time, ';park: ', self.park_time
 
     def get_point_left_and_right(self, img, flag, s, roi, left_restriction, right_restriction):
         IMG_H, IMG_W = 160, 320
@@ -244,6 +245,7 @@ class SegmentToSteer():
         IMG_H, IMG_W = label.shape
         on_crossroad = False
         detect_crossroad = False
+        detect_crossroad_control = False
         # label = label.tolist()
         label = label.astype(np.int32)
         interval = time.time() - self.last_time
@@ -254,10 +256,9 @@ class SegmentToSteer():
 
         flag = 0
         if self.on_crossroad:
-            if self.not_crossroad_counter >= 5:
+            if self.not_crossroad_counter >= 10:
                 self.on_crossroad = False
                 self.not_crossroad_counter = 0
-            print self.counter
             # if self.not_crossroad_counter <= 5:
             # if 0 < self.total_time_steer < self.total_time_steer_thresh:
             #     self.total_time_steer += interval
@@ -297,15 +298,16 @@ class SegmentToSteer():
         # new steer code --------------------------------
         if self.park_time:
             y, x = p2c_main.get_center_point_left_and_right(label, roi, froi, flag, left_restriction,
-                                                            right_restriction, 0.0)
+                                                            right_restriction, 0.0, self.mode)
         else:
             y, x, detect_crossroad, detect_crossroad_control = p2c_main.get_center_point(label, roi, froi, flag, left_restriction, right_restriction, self.mode)
         if not self.on_crossroad:
             if detect_crossroad:
                 self.consecutive_count += 1
-                if self.consecutive_count >= 1:
+                if self.consecutive_count >= 2:
                     self.counter += 1
                     self.consecutive_count = 0
+                    print self.counter
                     # self.total_time_steer += interval
                     self.not_crossroad_counter = 0
                     self.on_crossroad = True
@@ -314,7 +316,7 @@ class SegmentToSteer():
             else:
                 self.not_crossroad_counter = 0
                 self.consecutive_count = 0
-                self.total_time_steer = 0.0
+                # self.total_time_steer = 0.0
         elif self.on_crossroad:
             if not detect_crossroad_control:
                 self.not_crossroad_counter += 1

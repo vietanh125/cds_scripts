@@ -7,7 +7,7 @@ int d = 80;
 int rows = 160;
 int cols = 320;
 int square = 7;
-int margin_roi = 10;
+int margin_roi = 40;
 float time_threshold = 12.0;
 
 int max(int a, int b) {
@@ -118,7 +118,7 @@ void get_point_left_and_right(int img[rows][cols],
                         bool has_road, 
                         int road_property, 
                         float total_time, 
-                        int margin) {
+                        int margin, int mode) {
     int border = (square - 1) / 2;
     int i = rows * roi;
     int i_l = left_restriction + border;
@@ -148,7 +148,13 @@ void get_point_left_and_right(int img[rows][cols],
         i_r -= (border + 1);
     }
     // if (total_time < time_threshold)
-    *x = max(0, min(i_l + 50, cols));
+    switch (mode) {
+        case -1:
+            *x = max(0, min(i_l + 50, cols));
+            break;
+        default:
+            *x = max(0, min(i_r - 50, cols));
+    }
     // else
     //     *x = max(0, min(i_r - 50, cols));
     *y = i;
@@ -224,8 +230,8 @@ void get_center_point(int img[rows][cols],
     int *road_property = malloc(sizeof(int));
     bool *has_road_05 = malloc(sizeof(bool));
     int *road_property_05 = malloc(sizeof(int));
-    check_future_road(img, future_roi, has_road, road_property, 30);
-    check_future_road(img, 0.5, has_road_05, road_property_05, 30);
+    check_future_road(img, future_roi, has_road, road_property, 40);
+    check_future_road(img, 0.5, has_road_05, road_property_05, 40);
     get_point(img, roi, x, y, is_crossroad, is_crossroad_control, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
     while (img[*y][*x] == 0 && roi < 0.9) {
         *is_crossroad = false;
@@ -242,16 +248,17 @@ void get_center_point_left_and_right(int img[rows][cols],
                                     int *y, 
                                     int left_restriction, 
                                     int right_restriction, 
-                                    float total_time) {
+                                    float total_time, 
+                                    int mode) {
     // bool temp_bool = false;
     // int temp_int = 0;
     bool *has_road = malloc(sizeof(bool));
     int *road_property = malloc(sizeof(int));
     check_future_road(img, future_roi, has_road, road_property, 30);
-    get_point_left_and_right(img, roi, x, y, flag, left_restriction, right_restriction, *has_road, *road_property, total_time, 10);
+    get_point_left_and_right(img, roi, x, y, flag, left_restriction, right_restriction, *has_road, *road_property, total_time, 10, mode);
     while (img[*y][*x] == 0 && roi < 0.9) {
         roi += 0.05;
-        get_point_left_and_right(img, roi, x, y, flag, left_restriction, right_restriction, *has_road, *road_property, total_time, 10);
+        get_point_left_and_right(img, roi, x, y, flag, left_restriction, right_restriction, *has_road, *road_property, total_time, 10, mode);
     }
 }
 

@@ -27,6 +27,7 @@ check = True
 is_running = True
 # t1 = 0
 skip = 200
+depth_skip = 200
 
 
 class Processor:
@@ -55,16 +56,21 @@ class Processor:
 
     def depth_callback(self, data):
         global is_running
-        global skip
+        global depth_skip
         # if delta >= 0.03 and slf.total_time < self.total_time_thresh:
-        if skip > 0 or not self.s2s.depth_time:
+        if depth_skip > 0:
+            depth_skip -= 1
             return
         try:
             # convert_data(data.data)
-            img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
-            ratio = 8
-            cut = 50
-            self.depth_preprocess(img, ratio, cut)
+            if self.s2s.depth_time:
+                self.left_restriction = 0
+                self.right_restriction = 319
+                img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
+                ratio = 8
+                cut = 50
+                self.depth_preprocess(img, ratio, cut)
+                depth_skip += 1
         except CvBridgeError, e:
             print e
 
@@ -227,10 +233,9 @@ class Processor:
                 # self.s2s.total_width = self.s2s.roi * 160
                 self.s2s.total_time_steer = 0.0
                 self.total_time = 0.0
-                self.s2s.mode = -1
+                self.s2s.mode = 0
                 self.s2s.counter = 0
                 self.s2s.reset_actions()
-                # self.s2s.total_time_steer = 0.0
                 self.s2s.speed_memory = deque(iterable=np.zeros(5, dtype=np.uint8), maxlen=5)
                 self.s2s.error_proportional_ = 0.0
                 self.s2s.error_integral_ = 0.0
