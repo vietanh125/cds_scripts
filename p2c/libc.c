@@ -23,6 +23,7 @@ void get_point(int img[rows][cols],
             int* x, 
             int *y, 
             bool *is_crossroad, 
+            bool *is_crossroad_control,
             int flag, 
             int left_restriction, 
             int right_restriction, 
@@ -71,6 +72,8 @@ void get_point(int img[rows][cols],
 
     if (turn_left && turn_right && roi == (float) 0.6 && has_road_05 && road_property_05 == 2)
         *is_crossroad= true;
+    if (turn_left && turn_right)
+        *is_crossroad_control = true;
 
     if (left_restriction > 0)
         turn_left = false;
@@ -210,7 +213,8 @@ void get_center_point(int img[rows][cols],
                     int flag, 
                     int *x, 
                     int *y, 
-                    bool *is_crossroad, 
+                    bool *is_crossroad,
+                    bool *is_crossroad_control,
                     int left_restriction, 
                     int right_restriction, 
                     int mode) {
@@ -222,11 +226,11 @@ void get_center_point(int img[rows][cols],
     int *road_property_05 = malloc(sizeof(int));
     check_future_road(img, future_roi, has_road, road_property, 30);
     check_future_road(img, 0.5, has_road_05, road_property_05, 30);
-    get_point(img, roi, x, y, is_crossroad, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
+    get_point(img, roi, x, y, is_crossroad, is_crossroad_control, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
     while (img[*y][*x] == 0 && roi < 0.9) {
         *is_crossroad = false;
         roi += 0.05;
-        get_point(img, roi, x, y, is_crossroad, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
+        get_point(img, roi, x, y, is_crossroad, is_crossroad_control, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
     }
 }
 

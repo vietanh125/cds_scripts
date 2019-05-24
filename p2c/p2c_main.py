@@ -13,7 +13,7 @@ cols = 320
 array_2d_int = npct.ndpointer(dtype=np.int32, ndim=2, flags='CONTIGUOUS')
 libc.get_point.argtypes = [array_2d_int, c_float, POINTER(c_int), POINTER(c_int), c_int, c_int, c_int, c_bool, c_int]
 libc.check_future_road.argtypes = [array_2d_int, c_float, POINTER(c_bool), POINTER(c_int), c_int]
-libc.get_center_point.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_bool), c_int, c_int, c_int]
+libc.get_center_point.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_bool), POINTER(c_bool), c_int, c_int, c_int]
 libc.get_center_point_left_and_right.argtypes = [array_2d_int, c_float, c_float, c_int, POINTER(c_int), POINTER(c_int), c_int, c_int, c_float]
 libc.set_time_threshold.argtypes = [c_float]
 
@@ -36,8 +36,9 @@ def get_center_point(img, roi, future_roi, flag, left_restriction, right_restric
     p_x = pointer(c_int())
     p_y = pointer(c_int())
     p_is_crossroad = pointer(c_bool())
-    libc.get_center_point(img, roi, future_roi, flag, p_x, p_y, p_is_crossroad, left_restriction, right_restriction, mode)
-    return p_y.contents.value, p_x.contents.value, p_is_crossroad.contents.value
+    p_is_crossroad_control = pointer(c_bool())
+    libc.get_center_point(img, roi, future_roi, flag, p_x, p_y, p_is_crossroad, p_is_crossroad_control, left_restriction, right_restriction, mode)
+    return p_y.contents.value, p_x.contents.value, p_is_crossroad.contents.value, p_is_crossroad_control.contents.value
 
 def get_center_point_left_and_right(img, roi, future_roi, flag, left_restriction, right_restriction, total_time):
     p_x = pointer(c_int())
