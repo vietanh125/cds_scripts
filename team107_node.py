@@ -64,8 +64,6 @@ class Processor:
         try:
             # convert_data(data.data)
             if self.s2s.depth_time:
-                self.left_restriction = 0
-                self.right_restriction = 319
                 img = self.cv_bridge.imgmsg_to_cv2(data, "passthrough")
                 ratio = 8
                 cut = 50
@@ -83,7 +81,7 @@ class Processor:
         # print(frame)
         if self.pred_image is not None:
             rects = find_obstacle(np.array(frame, np.uint8), self.pred_image, k=3, min_area=0)
-            self.left_restriction, self.right_restriction = get_restriction(rects)
+            self.left_restriction, self.right_restriction = get_restriction_2(rects)
         # frame = np.float32(frame) * 255.
         # if r is not None:
         #     x, y, w, h = r
@@ -164,12 +162,12 @@ class Processor:
 
     def parking(self, frame):
         H, W = 160, 320
-        frame = frame[int(0.4 * H):-1, int(0.5 * W): int(0.6 * W)]
+        frame = frame[int(0.4 * H):-1, int(0.35 * W): int(0.65 * W)]
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame = cv2.GaussianBlur(frame, (5, 5), 0)
-        _, frame = cv2.threshold(frame, 200, 255, cv2.THRESH_BINARY)
-        sobely = cv2.Sobel(frame, cv2.CV_8U, 0, 1, ksize=3)
-        sobely = cv2.erode(sobely, (3, 35))
+        _, frame = cv2.threshold(frame, 240, 255, cv2.THRESH_BINARY)
+        # sobely = cv2.Sobel(frame, cv2.CV_8U, 0, 1, ksize=3)
+        sobely = cv2.erode(frame, (2, 50))
         # cv2.imshow('line', sobely)
         # cv2.waitKey(1)
         i = 0
@@ -178,7 +176,7 @@ class Processor:
             if sobely[i][w / 2] == 255:
                 break
             i += 1
-        d = max(0, (h - i) - 50)
+        d = max(0, (h - i) - 60)
         if i >= h - 1:
             return -1
         return d / 3
@@ -215,7 +213,7 @@ class Processor:
             # print self.left_restriction, self.right_restriction
             speed, steer = self.s2s.get_steer(res, self.flag, sharp, self.left_restriction, self.right_restriction)
 
-            if self.s2s.park_time:
+            if self.s2s.park_time and not self.s2s.on_crossroad:
                 parking_speed = self.parking(self.image)
                 if parking_speed > -1:
                     self.s2s.speed_memory.pop()

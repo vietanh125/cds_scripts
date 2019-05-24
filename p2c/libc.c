@@ -7,7 +7,7 @@ int d = 80;
 int rows = 160;
 int cols = 320;
 int square = 7;
-int margin_roi = 40;
+int margin_roi = 50;
 float time_threshold = 12.0;
 
 int max(int a, int b) {
@@ -230,8 +230,8 @@ void get_center_point(int img[rows][cols],
     int *road_property = malloc(sizeof(int));
     bool *has_road_05 = malloc(sizeof(bool));
     int *road_property_05 = malloc(sizeof(int));
-    check_future_road(img, future_roi, has_road, road_property, 40);
-    check_future_road(img, 0.5, has_road_05, road_property_05, 40);
+    check_future_road(img, future_roi, has_road, road_property, 50);
+    check_future_road(img, 0.5, has_road_05, road_property_05, 50);
     get_point(img, roi, x, y, is_crossroad, is_crossroad_control, flag, left_restriction, right_restriction, *has_road, *road_property, *has_road_05, *road_property_05, margin_roi, mode);
     while (img[*y][*x] == 0 && roi < 0.9) {
         *is_crossroad = false;
