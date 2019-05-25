@@ -22,7 +22,7 @@ def remove_noise(img, k):
     return img
 
 
-def remove_ground(img, padding=1, distance=2):
+def remove_ground(img, padding=1, distance=3):
     h, w = img.shape
     for i in range(w):
         for j in range(h):
@@ -152,7 +152,7 @@ def get_restriction_2(rects):
         return 0, 319
     x, y, w, h, status = rects[0]
     if status == -1:
-        return min(319, x + w), 319
+        return min(319, x + w + 60), 319
     elif status == 0:
         return 0, 319
-    return 0, x
+    return 0, x - 60
