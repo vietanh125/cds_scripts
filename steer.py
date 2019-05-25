@@ -26,7 +26,7 @@ class SegmentToSteer():
         self.mode = 0
         self.acc_threshold = 0.9
         self.is_on_bridge = False
-        self.paths = [1, 1, 1, -1, 1]
+        self.paths = [-1, -1, 1, -1, 1]
         self.actions = [["obstacle_on", "circle"], ["right_stick"], [], ["right_stick"], ["parking_on", "right_stick"]]
         # self.paths = [1]
         # self.actions = [["parking_on", "right_stick"]]
